@@ -7,105 +7,111 @@
   touch-action: none;
 }
 
-body {
-  background-color: #121212;
-  color: #f1f1f1;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh;
+html, body {
+  width: 100%;
+  height: 100%;
   overflow: hidden;
+  background-color: #0b0c10;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
 #game-container {
   position: relative;
   width: 100vw;
-  max-width: 420px;
   height: 100vh;
-  max-height: 800px;
-  background-color: #1f1f2e;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: space-between;
+  background-color: #1a1a24;
   overflow: hidden;
-  border: 1px solid #333;
 }
 
 #hud {
   width: 100%;
   display: flex;
   justify-content: space-around;
-  padding: 10px 5px 4px 5px;
-  background: rgba(0, 0, 0, 0.6);
-  font-size: 14px;
+  padding: 12px 10px 6px 10px;
+  background: rgba(0, 0, 0, 0.75);
+  font-size: 15px;
   font-weight: bold;
+  color: #fff;
+  z-index: 5;
 }
 
 #bars {
-  width: 90%;
+  width: 100%;
+  padding: 4px 16px 8px 16px;
+  background: rgba(0, 0, 0, 0.75);
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 4px 0 6px 0;
+  gap: 6px;
+  z-index: 5;
 }
 
 .bar-container {
   width: 100%;
-  height: 8px;
-  background: #333;
-  border-radius: 4px;
+  height: 10px;
+  background: #2b2b2b;
+  border-radius: 5px;
   overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.15);
 }
 
 .bar-fill {
   height: 100%;
   width: 0%;
-  transition: width 0.1s linear;
+  transition: width 0.08s linear;
 }
 
 .blood-fill {
-  background: #e74c3c;
+  background: linear-gradient(90deg, #e74c3c, #ff7675);
 }
 
 .alert-fill {
-  background: #f1c40f;
+  background: linear-gradient(90deg, #f1c40f, #e67e22);
 }
 
 #gameCanvas {
-  background-color: #2b2b36;
+  flex: 1;
   width: 100%;
-  flex-grow: 1;
   display: block;
+  background-color: #1e1e2d;
 }
 
 #skill-controls {
   width: 100%;
-  padding: 8px 16px 14px 16px;
-  background: rgba(0, 0, 0, 0.7);
+  padding: 12px 20px 20px 20px;
+  background: rgba(0, 0, 0, 0.85);
   display: flex;
   justify-content: center;
+  align-items: center;
+  z-index: 5;
 }
 
 .game-btn {
-  background-color: #34495e;
+  width: 100%;
+  max-width: 320px;
+  background: linear-gradient(135deg, #8e44ad, #9b59b6);
   color: #fff;
-  border: 2px solid #5d6d7e;
-  border-radius: 20px;
-  padding: 10px 24px;
-  font-size: 15px;
+  border: 2px solid #be90d4;
+  border-radius: 28px;
+  padding: 14px 20px;
+  font-size: 17px;
   font-weight: bold;
+  letter-spacing: 1px;
   cursor: pointer;
+  box-shadow: 0 4px 12px rgba(142, 68, 173, 0.4);
+  transition: transform 0.1s, opacity 0.2s;
 }
 
-.game-btn.active {
-  background-color: #9b59b6;
-  border-color: #bb8fce;
+.game-btn:active {
+  transform: scale(0.96);
 }
 
-.game-btn.disabled {
-  opacity: 0.5;
+.game-btn.cooldown {
+  background: #4a4a58;
+  border-color: #636e72;
+  color: #b2bec3;
+  box-shadow: none;
   cursor: not-allowed;
 }
 
@@ -119,42 +125,41 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 10;
+  z-index: 20;
 }
 
 .modal {
-  background: #2c3e50;
-  padding: 24px;
-  border-radius: 12px;
-  width: 82%;
+  background: #252836;
+  padding: 28px 24px;
+  border-radius: 16px;
+  width: 86%;
+  max-width: 340px;
   text-align: center;
-  border: 1px solid #7f8c8d;
+  border: 1px solid #3d4255;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.6);
 }
 
 .modal h2 {
   margin-bottom: 12px;
-  color: #e74c3c;
-  font-size: 20px;
+  color: #ff6b6b;
+  font-size: 22px;
 }
 
 .modal p {
-  font-size: 14px;
+  font-size: 15px;
   line-height: 1.6;
-  color: #ecf0f1;
-  margin-bottom: 20px;
+  color: #dfe6e9;
+  margin-bottom: 22px;
 }
 
 .action-btn {
+  width: 100%;
   background: #e74c3c;
   color: white;
   border: none;
-  padding: 12px 28px;
-  font-size: 16px;
+  padding: 14px 0;
+  font-size: 17px;
   font-weight: bold;
   border-radius: 24px;
   cursor: pointer;
-}
-
-.action-btn:hover {
-  background: #c0392b;
 }
