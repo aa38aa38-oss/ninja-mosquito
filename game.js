@@ -35,13 +35,13 @@ let gameState = {
   freezeAlertTimer: 0
 };
 
-// 畫面解析度隨視窗自動佔滿
+// 畫面解析度隨視窗動態佔滿
 function resizeCanvas() {
   canvas.width = canvas.clientWidth;
   canvas.height = canvas.clientHeight;
   if (!gameRunning) {
     mosquito.x = canvas.width / 2;
-    mosquito.y = canvas.height * 0.9;
+    mosquito.y = canvas.height * 0.85;
     mosquito.targetX = mosquito.x;
     mosquito.targetY = mosquito.y;
   }
@@ -81,20 +81,31 @@ startBtn.addEventListener("click", () => {
   overlay.style.display = "none";
   gameRunning = true;
 });
+startBtn.addEventListener("touchend", (e) => {
+  e.preventDefault();
+  overlay.style.display = "none";
+  gameRunning = true;
+});
 
-// 忍術按鈕點擊觸發
-function triggerSkill() {
-  if (!gameRunning || cdCounter > 0 || !currentLevel.activateSkill) return;
+// 忍術觸發核心邏輯
+function triggerSkill(e) {
+  if (e) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+  if (!gameRunning) return;
+  if (cdCounter > 0) return;
+  if (!currentLevel || !currentLevel.activateSkill) return;
+
+  // 施展影分身
   decoyEffect = currentLevel.activateSkill(gameState, mosquito);
   cdCounter = currentLevel.skillCooldown || 180;
   skillBtn.classList.add("cooldown");
 }
 
+// 支援手機觸控與電腦點擊，避免事件穿透失靈
+skillBtn.addEventListener("touchstart", triggerSkill, { passive: false });
 skillBtn.addEventListener("click", triggerSkill);
-skillBtn.addEventListener("touchstart", (e) => {
-  e.preventDefault();
-  triggerSkill();
-});
 
 // 手勢定位計算
 function handlePointer(clientX, clientY) {
@@ -112,7 +123,7 @@ canvas.addEventListener("touchmove", (e) => {
 canvas.addEventListener("touchstart", (e) => {
   if (!gameRunning) return;
   handlePointer(e.touches[0].clientX, e.touches[0].clientY);
-});
+}, { passive: false });
 
 canvas.addEventListener("mousemove", (e) => {
   if (!gameRunning) return;
@@ -128,7 +139,7 @@ function updateUI() {
   // 更新冷卻提示
   if (cdCounter > 0) {
     const sec = Math.ceil(cdCounter / 60);
-    skillBtn.textContent = `冷卻中 (${sec}s)`;
+    skillBtn.textContent = `忍術冷卻中 (${sec}s)`;
   } else {
     skillBtn.textContent = currentLevel.skillName;
     skillBtn.classList.remove("cooldown");
@@ -236,10 +247,17 @@ function gameLoop() {
     }
   }
 
-  // 繪製影分身殘影
+  // 繪製影分身殘影與煙霧效果
   if (decoyEffect) {
     drawMosquito(decoyEffect.x, decoyEffect.y, false, decoyEffect.alpha);
-    decoyEffect.alpha -= 0.015;
+    // 殘影周圍的查克拉氣息
+    ctx.strokeStyle = `rgba(155, 89, 182, ${decoyEffect.alpha * 0.7})`;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(decoyEffect.x, decoyEffect.y, (1 - decoyEffect.alpha) * 30 + 10, 0, Math.PI * 2);
+    ctx.stroke();
+
+    decoyEffect.alpha -= 0.02;
     if (decoyEffect.alpha <= 0) decoyEffect = null;
   }
 
