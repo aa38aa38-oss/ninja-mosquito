@@ -1,58 +1,76 @@
 window.Level1 = {
   id: 1,
   title: "第一關：熟睡的目標",
-  story: "人類正處於熟睡狀態。雖然沒有防備，但翻身與微弱感知仍會驚動他。請尋找露出的四肢或頭部，吸滿查克拉！",
-  skillName: "基礎飛行",
-  hasActiveSkill: false,
+  story: "人類正在沉睡。露出的部位有頭部與雙手雙腳。當警戒值升高時，點擊下方「影分身」可留下殘影誘餌並大幅降低警戒！",
+  skillName: "忍術：影分身 (降警戒)",
+  skillCooldown: 180, // 約3秒 (60幀/秒)
 
-  // 人體繪製與部位設定
+  // 施展技能效果
+  activateSkill(state, mosquito) {
+    state.alert = Math.max(0, state.alert - 28); // 消除大量警戒
+    state.freezeAlertTimer = 100; // 凍結警戒上升約1.5秒
+    return {
+      x: mosquito.x,
+      y: mosquito.y,
+      alpha: 1.0 // 殘影透明度
+    };
+  },
+
+  // 繪製睡眠中的人體（自適應畫布尺寸）
   drawHuman(ctx, width, height, timer) {
-    // 繪製床鋪與被褥
-    ctx.fillStyle = "#2c3e50";
-    ctx.fillRect(40, 70, width - 80, height - 140);
+    const cx = width / 2;
+    const breath = Math.sin(timer * 0.04) * 4;
 
-    ctx.fillStyle = "#34495e";
-    ctx.fillRect(40, 180, width - 80, height - 250); // 棉被覆蓋區
+    // 床墊背景
+    ctx.fillStyle = "#242b35";
+    ctx.fillRect(width * 0.08, height * 0.08, width * 0.84, height * 0.84);
 
-    // 呼吸起伏動畫
-    const breath = Math.sin(timer * 0.05) * 3;
+    // 棉被 (遮蓋身體大部分)
+    ctx.fillStyle = "#2f3640";
+    ctx.fillRect(width * 0.12, height * 0.32, width * 0.76, height * 0.42);
 
-    // 1. 頭部 (高收益, 高警覺)
-    ctx.fillStyle = "#f5cba7";
+    // 人體肉色區塊
+    ctx.fillStyle = "#f5cd79";
+
+    // 1. 頭部
+    const headRadius = Math.min(width * 0.12, 45);
     ctx.beginPath();
-    ctx.arc(width / 2, 120 + breath, 36, 0, Math.PI * 2);
+    ctx.arc(cx, height * 0.2 + breath, headRadius, 0, Math.PI * 2);
     ctx.fill();
 
     // 2. 左手露出部分
     ctx.beginPath();
-    ctx.ellipse(65, 230 + breath * 0.5, 16, 32, 0.2, 0, Math.PI * 2);
+    ctx.ellipse(width * 0.2, height * 0.42 + breath * 0.4, 20, 36, 0.2, 0, Math.PI * 2);
     ctx.fill();
 
     // 3. 右手露出部分
     ctx.beginPath();
-    ctx.ellipse(width - 65, 230 + breath * 0.5, 16, 32, -0.2, 0, Math.PI * 2);
+    ctx.ellipse(width * 0.8, height * 0.42 + breath * 0.4, 20, 36, -0.2, 0, Math.PI * 2);
     ctx.fill();
 
     // 4. 腳部露出部分
     ctx.beginPath();
-    ctx.ellipse(width / 2, height - 100, 32, 18, 0, 0, Math.PI * 2);
+    ctx.ellipse(cx, height * 0.84, 45, 24, 0, 0, Math.PI * 2);
     ctx.fill();
   },
 
-  // 吸血判定區域與數值加成
+  // 動態計算吸血區域
   getBiteZones(width, height) {
+    const cx = width / 2;
+    const headRadius = Math.min(width * 0.12, 45);
+
     return [
-      { name: "頭部", x: width / 2, y: 120, radius: 36, alertRate: 0.45, bloodRate: 0.6 },
-      { name: "左手", x: 65, y: 230, radius: 24, alertRate: 0.25, bloodRate: 0.4 },
-      { name: "右手", x: width - 65, y: 230, radius: 24, alertRate: 0.25, bloodRate: 0.4 },
-      { name: "腳部", x: width / 2, y: height - 100, radius: 28, alertRate: 0.2, bloodRate: 0.35 }
+      { name: "頭部", x: cx, y: height * 0.2, radius: headRadius + 4, alertRate: 0.4, bloodRate: 0.65 },
+      { name: "左手", x: width * 0.2, y: height * 0.42, radius: 28, alertRate: 0.22, bloodRate: 0.4 },
+      { name: "右手", x: width * 0.8, y: height * 0.42, radius: 28, alertRate: 0.22, bloodRate: 0.4 },
+      { name: "腳部", x: cx, y: height * 0.84, radius: 36, alertRate: 0.16, bloodRate: 0.32 }
     ];
   },
 
-  // 關卡特殊干擾更新 (第1關為偶爾輕微晃動)
+  // 特殊環境動態
   updateSpecial(state) {
-    if (Math.random() < 0.01) {
-      state.alert += 3; // 偶爾輕微抓癢警覺提升
+    if (Math.random() < 0.008) {
+      state.alert += 4; // 睡眠中無意識輕微抽動
     }
   }
 };
