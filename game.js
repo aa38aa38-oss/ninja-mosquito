@@ -18,21 +18,36 @@ let currentLevel = null;
 let gameRunning = false;
 let timer = 0;
 
+let cdCounter = 0; // 忍術冷卻計數
+let decoyEffect = null; // 影分身殘影
+
 let mosquito = {
-  x: 180,
-  y: 500,
-  targetX: 180,
-  targetY: 500,
-  size: 14,
+  x: 0,
+  y: 0,
+  targetX: 0,
+  targetY: 0,
   isBiting: false
 };
 
 let gameState = {
   blood: 0,
-  alert: 0
+  alert: 0,
+  freezeAlertTimer: 0
 };
 
-// 關卡清單
+// 畫面解析度隨視窗自動佔滿
+function resizeCanvas() {
+  canvas.width = canvas.clientWidth;
+  canvas.height = canvas.clientHeight;
+  if (!gameRunning) {
+    mosquito.x = canvas.width / 2;
+    mosquito.y = canvas.height * 0.9;
+    mosquito.targetX = mosquito.x;
+    mosquito.targetY = mosquito.y;
+  }
+}
+window.addEventListener("resize", resizeCanvas);
+
 const levels = {
   1: window.Level1,
   2: window.Level2,
@@ -43,20 +58,21 @@ function initLevel(lvlNum) {
   currentLevel = levels[lvlNum];
   levelDisplay.textContent = currentLevel.id;
   skillBtn.textContent = currentLevel.skillName;
+  skillBtn.classList.remove("cooldown");
 
   gameState.blood = 0;
   gameState.alert = 0;
-  mosquito.x = canvas.width / 2;
-  mosquito.y = canvas.height - 80;
-  mosquito.targetX = mosquito.x;
-  mosquito.targetY = mosquito.y;
-  mosquito.isBiting = false;
+  gameState.freezeAlertTimer = 0;
+  cdCounter = 0;
+  decoyEffect = null;
 
+  resizeCanvas();
+  mosquito.isBiting = false;
   updateUI();
 
   modalTitle.textContent = currentLevel.title;
   modalDesc.textContent = currentLevel.story;
-  startBtn.textContent = "開始吸血";
+  startBtn.textContent = "開始行動";
   overlay.style.display = "flex";
   gameRunning = false;
 }
@@ -66,32 +82,41 @@ startBtn.addEventListener("click", () => {
   gameRunning = true;
 });
 
-// 手指觸控或滑鼠拖曳操控
-function updatePosition(clientX, clientY) {
-  const rect = canvas.getBoundingClientRect();
-  const scaleX = canvas.width / rect.width;
-  const scaleY = canvas.height / rect.height;
+// 忍術按鈕點擊觸發
+function triggerSkill() {
+  if (!gameRunning || cdCounter > 0 || !currentLevel.activateSkill) return;
+  decoyEffect = currentLevel.activateSkill(gameState, mosquito);
+  cdCounter = currentLevel.skillCooldown || 180;
+  skillBtn.classList.add("cooldown");
+}
 
-  mosquito.targetX = (clientX - rect.left) * scaleX;
-  mosquito.targetY = (clientY - rect.top) * scaleY;
+skillBtn.addEventListener("click", triggerSkill);
+skillBtn.addEventListener("touchstart", (e) => {
+  e.preventDefault();
+  triggerSkill();
+});
+
+// 手勢定位計算
+function handlePointer(clientX, clientY) {
+  const rect = canvas.getBoundingClientRect();
+  mosquito.targetX = clientX - rect.left;
+  mosquito.targetY = clientY - rect.top;
 }
 
 canvas.addEventListener("touchmove", (e) => {
   e.preventDefault();
   if (!gameRunning) return;
-  const touch = e.touches[0];
-  updatePosition(touch.clientX, touch.clientY);
+  handlePointer(e.touches[0].clientX, e.touches[0].clientY);
 }, { passive: false });
 
 canvas.addEventListener("touchstart", (e) => {
   if (!gameRunning) return;
-  const touch = e.touches[0];
-  updatePosition(touch.clientX, touch.clientY);
+  handlePointer(e.touches[0].clientX, e.touches[0].clientY);
 });
 
 canvas.addEventListener("mousemove", (e) => {
   if (!gameRunning) return;
-  updatePosition(e.clientX, e.clientY);
+  handlePointer(e.clientX, e.clientY);
 });
 
 function updateUI() {
@@ -99,6 +124,15 @@ function updateUI() {
   alertDisplay.textContent = Math.floor(gameState.alert) + "%";
   bloodBar.style.width = Math.min(gameState.blood, 100) + "%";
   alertBar.style.width = Math.min(gameState.alert, 100) + "%";
+
+  // 更新冷卻提示
+  if (cdCounter > 0) {
+    const sec = Math.ceil(cdCounter / 60);
+    skillBtn.textContent = `冷卻中 (${sec}s)`;
+  } else {
+    skillBtn.textContent = currentLevel.skillName;
+    skillBtn.classList.remove("cooldown");
+  }
 }
 
 function checkBite() {
@@ -110,49 +144,52 @@ function checkBite() {
     if (dist < zone.radius) {
       mosquito.isBiting = true;
       gameState.blood += zone.bloodRate;
-      gameState.alert += zone.alertRate;
+      if (gameState.freezeAlertTimer <= 0) {
+        gameState.alert += zone.alertRate;
+      }
       break;
     }
   }
 
-  // 沒停在吸血區時警戒值會緩慢回降
+  // 離開吸血點時警戒回降
   if (!mosquito.isBiting && gameState.alert > 0) {
-    gameState.alert -= 0.15;
+    gameState.alert -= 0.18;
     if (gameState.alert < 0) gameState.alert = 0;
   }
 }
 
-function drawMosquito() {
+function drawMosquito(x, y, isBiting, alpha = 1) {
   ctx.save();
-  ctx.translate(mosquito.x, mosquito.y);
+  ctx.globalAlpha = alpha;
+  ctx.translate(x, y);
 
-  // 蚊子本體 (忍者黑)
-  ctx.fillStyle = mosquito.isBiting ? "#c0392b" : "#111";
+  // 蚊子身軀
+  ctx.fillStyle = isBiting ? "#e74c3c" : "#111";
   ctx.beginPath();
-  ctx.ellipse(0, 0, 5, 10, 0, 0, Math.PI * 2);
+  ctx.ellipse(0, 0, 6, 12, 0, 0, Math.PI * 2);
   ctx.fill();
 
-  // 蚊子翅膀 (拍動效果)
-  const wingFlap = Math.sin(timer * 0.8) * 8;
-  ctx.strokeStyle = "rgba(255, 255, 255, 0.6)";
-  ctx.lineWidth = 1.5;
+  // 翅膀拍動
+  const wingFlap = Math.sin(timer * 0.9) * 10;
+  ctx.strokeStyle = "rgba(255, 255, 255, 0.7)";
+  ctx.lineWidth = 1.6;
 
   ctx.beginPath();
-  ctx.moveTo(0, -2);
-  ctx.lineTo(-12, -8 + wingFlap);
+  ctx.moveTo(0, -3);
+  ctx.lineTo(-15, -10 + wingFlap);
   ctx.stroke();
 
   ctx.beginPath();
-  ctx.moveTo(0, -2);
-  ctx.lineTo(12, -8 - wingFlap);
+  ctx.moveTo(0, -3);
+  ctx.lineTo(15, -10 - wingFlap);
   ctx.stroke();
 
-  // 口器 (吸血針)
-  ctx.strokeStyle = "#7f8c8d";
-  ctx.lineWidth = 1;
+  // 口器
+  ctx.strokeStyle = "#95a5a6";
+  ctx.lineWidth = 1.2;
   ctx.beginPath();
-  ctx.moveTo(0, -10);
-  ctx.lineTo(0, -16);
+  ctx.moveTo(0, -12);
+  ctx.lineTo(0, -18);
   ctx.stroke();
 
   ctx.restore();
@@ -166,9 +203,12 @@ function gameLoop() {
     currentLevel.drawHuman(ctx, canvas.width, canvas.height, timer);
 
     if (gameRunning) {
-      // 蚊子平滑跟隨手指目標點
-      mosquito.x += (mosquito.targetX - mosquito.x) * 0.15;
-      mosquito.y += (mosquito.targetY - mosquito.y) * 0.15;
+      // 蚊子跟隨手指
+      mosquito.x += (mosquito.targetX - mosquito.x) * 0.18;
+      mosquito.y += (mosquito.targetY - mosquito.y) * 0.18;
+
+      if (cdCounter > 0) cdCounter--;
+      if (gameState.freezeAlertTimer > 0) gameState.freezeAlertTimer--;
 
       checkBite();
       if (currentLevel.updateSpecial) {
@@ -176,30 +216,39 @@ function gameLoop() {
       }
       updateUI();
 
-      // 勝利條件
+      // 勝利判斷
       if (gameState.blood >= 100) {
         gameRunning = false;
-        modalTitle.textContent = "任務成功！";
-        modalDesc.textContent = "你成功吸飽了查克拉，沒有吵醒人類！現在可以體驗測試版成果。";
-        startBtn.textContent = "再玩一次";
+        modalTitle.textContent = "第一關：試煉達成！";
+        modalDesc.textContent = "太神啦！你成功吸飽了查克拉並全身而退！";
+        startBtn.textContent = "再次挑戰第一關";
         overlay.style.display = "flex";
       }
 
-      // 失敗條件
+      // 失敗判斷
       if (gameState.alert >= 100) {
         gameRunning = false;
-        modalTitle.textContent = "啪！被發現了！";
-        modalDesc.textContent = "人類警覺爆表，一掌揮了下來！請重試。";
+        modalTitle.textContent = "啪！被巴到了！";
+        modalDesc.textContent = "警戒值爆表，人類一掌揮下來！善用影分身忍術來降低警戒吧！";
         startBtn.textContent = "重新挑戰";
         overlay.style.display = "flex";
       }
     }
   }
 
-  drawMosquito();
+  // 繪製影分身殘影
+  if (decoyEffect) {
+    drawMosquito(decoyEffect.x, decoyEffect.y, false, decoyEffect.alpha);
+    decoyEffect.alpha -= 0.015;
+    if (decoyEffect.alpha <= 0) decoyEffect = null;
+  }
+
+  drawMosquito(mosquito.x, mosquito.y, mosquito.isBiting);
   requestAnimationFrame(gameLoop);
 }
 
 // 啟動第一關
-initLevel(1);
-gameLoop();
+setTimeout(() => {
+  initLevel(1);
+  gameLoop();
+}, 100);
