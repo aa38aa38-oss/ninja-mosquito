@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>忍者蚊子 - 壽星血宴</title>
+    <title>忍者蚊子 - 幫力維吸出來</title>
     <style>
         * {
             box-sizing: border-box;
@@ -31,7 +31,112 @@
             height: 100%;
         }
 
-        /* 頂部 HUD */
+        /* ------------------ 開始封面首頁 ------------------ */
+        #start-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: #000 url('cover.png') no-repeat center center;
+            background-size: cover;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            align-items: center;
+            padding-bottom: env(safe-area-inset-bottom, 50px);
+            transition: opacity 0.4s ease, visibility 0.4s;
+        }
+        #start-screen.hidden {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+        .start-btn-group {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            width: 82%;
+            max-width: 320px;
+            margin-bottom: 30px;
+        }
+        .menu-btn {
+            width: 100%;
+            padding: 14px 0;
+            border-radius: 30px;
+            font-size: 19px;
+            font-weight: 900;
+            letter-spacing: 2px;
+            text-align: center;
+            color: #fff;
+            cursor: pointer;
+            backdrop-filter: blur(8px);
+            transition: transform 0.1s ease, box-shadow 0.15s ease;
+        }
+        #start-game-btn {
+            background: linear-gradient(135deg, #ff1744 0%, #d50000 100%);
+            border: 2px solid #ff8a80;
+            box-shadow: 0 0 20px rgba(255, 23, 68, 0.75);
+            animation: startGlow 1.4s infinite alternate;
+        }
+        @keyframes startGlow {
+            0% { transform: scale(1.0); box-shadow: 0 0 15px rgba(255, 23, 68, 0.6); }
+            100% { transform: scale(1.04); box-shadow: 0 0 28px rgba(255, 23, 68, 0.95); }
+        }
+        #help-btn {
+            background: rgba(20, 20, 30, 0.75);
+            border: 1.5px solid rgba(255, 255, 255, 0.5);
+            font-size: 16px;
+        }
+        .menu-btn:active {
+            transform: scale(0.94) !important;
+        }
+
+        /* 遊戲說明彈窗 */
+        #help-modal {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 86%;
+            max-width: 360px;
+            background: rgba(15, 15, 25, 0.94);
+            border: 2px solid #00e5ff;
+            border-radius: 18px;
+            padding: 22px 20px;
+            color: #fff;
+            display: none;
+            z-index: 110;
+            box-shadow: 0 0 25px rgba(0, 229, 255, 0.4);
+            backdrop-filter: blur(10px);
+        }
+        #help-modal h3 {
+            color: #00e5ff;
+            margin-bottom: 12px;
+            font-size: 20px;
+            text-align: center;
+        }
+        #help-modal p {
+            font-size: 13.5px;
+            line-height: 1.6;
+            color: #ddd;
+            margin-bottom: 8px;
+        }
+        #close-help-btn {
+            margin-top: 15px;
+            width: 100%;
+            padding: 10px 0;
+            background: #00b0ff;
+            border: none;
+            border-radius: 20px;
+            color: #fff;
+            font-weight: bold;
+            font-size: 15px;
+            cursor: pointer;
+        }
+
+        /* ------------------ 頂部 HUD ------------------ */
         #hud {
             position: absolute;
             top: env(safe-area-inset-top, 15px);
@@ -120,7 +225,24 @@
             100% { transform: translate(-50%, -50%) scale(1.15); }
         }
 
-        /* 左半邊動態搖桿感應區 */
+        /* 完美閃避提示 */
+        #dodge-popup {
+            position: absolute;
+            top: 40%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.8);
+            color: #00e5ff;
+            font-size: 32px;
+            font-weight: 900;
+            font-style: italic;
+            text-shadow: 0 0 10px #000, 0 0 20px #00e5ff;
+            display: none;
+            z-index: 48;
+            pointer-events: none;
+            transition: transform 0.2s ease-out, opacity 0.3s ease-out;
+        }
+
+        /* 虛擬搖桿與按鈕 */
         #touch-left-zone {
             position: absolute;
             top: 0;
@@ -157,7 +279,6 @@
             pointer-events: none;
         }
 
-        /* 右側動作按鈕 */
         #action-container {
             position: absolute;
             right: 25px;
@@ -255,16 +376,32 @@
 <div id="game-container">
     <canvas id="gameCanvas"></canvas>
 
+    <!-- 封面開始畫面 -->
+    <div id="start-screen">
+        <div class="start-btn-group">
+            <div id="start-game-btn" class="menu-btn">START GAME</div>
+            <div id="help-btn" class="menu-btn">HOW TO PLAY</div>
+        </div>
+    </div>
+
+    <!-- 遊戲說明彈窗 -->
+    <div id="help-modal">
+        <h3>🥷 忍者蚊子修練指南</h3>
+        <p>1. <b>飢餓生存</b>：未吸血時體力持續扣減，必須找皮膚吸血回血！</p>
+        <p>2. <b>目標鎖定</b>：吸【壽星（黑衣雙讚）】累積精華液；吸【胖子】會中毒扣血暴斃！</p>
+        <p>3. <b>瞬移閃避</b>：推動搖桿時按【⚡ 瞬移】，可閃避揮手掌風、電蚊拍與各類雜物攻擊！</p>
+        <p>4. <b>巨掌 QTE</b>：警覺度 100% 時巨掌將合圍，看準時機按瞬移逃出生天！</p>
+        <button id="close-help-btn">我知道了！出發！</button>
+    </div>
+
     <div id="touch-left-zone"></div>
     <div id="arena-joystick">
         <div id="arena-knob"></div>
     </div>
 
-    <!-- 熱區檢視切換開關 -->
-    <div id="debug-btn">👁️ 顯示熱區</div>
-
-    <!-- 100% QTE 提示 -->
+    <div id="debug-btn">👁 顯示熱區</div>
     <div id="qte-overlay">⚠️ 巨掌合圍！按【瞬移⚡】閃避！</div>
+    <div id="dodge-popup">⚡ DODGE! 完美閃避！</div>
 
     <div id="hud">
         <div id="status-text">目標：探索合照尋找壽星</div>
@@ -287,7 +424,6 @@
         <div id="blink-btn" class="hud-btn">⚡ 瞬移</div>
     </div>
 
-    <!-- 失敗處決結算畫面 -->
     <div id="game-over-screen">
         <div id="death-title">啪！忍道終結</div>
         <div id="death-reason">壽星神掌從天而降，你被拍成了肉餅...</div>
@@ -320,7 +456,6 @@ assets.fly2.src = "mosquito_fly_2.png";
 assets.suck.src = "mosquito_suck.png";
 assets.dizzy.src = "mosquito_dizzy.png";
 
-// 鎖定圖片真實解析度 (小畫家 740 x 842 像素)
 let worldWidth = 740;
 let worldHeight = 842;
 
@@ -342,10 +477,12 @@ const mosquito = {
     frameTimer: 0,
     isDead: false,
     deathType: "",
-    invincibleTimer: 0 // 瞬移無敵幀
+    invincibleTimer: 0
 };
 
-// 數值系統
+// 遊戲狀態開關：一開始在選單封面上
+let isGameStarted = false;
+
 let essence = 0;
 let health = 100;
 let alertVal = 0;
@@ -358,14 +495,13 @@ let bloodParticles = [];
 let blinkShadows = [];
 let showDebugBoxes = false;
 
-// 雜物與陷阱陣列
 let hazards = [];
 let hazardSpawnTimer = 0;
 
-// 警覺度與災難狀態
 let windWaveTimer = 0;
 let windWaveActive = false;
 let windWaveX = -200;
+let windWaveWarning = false;
 let screenShakeTimer = 0;
 let hurtFlashTimer = 0;
 let qteActive = false;
@@ -374,12 +510,32 @@ let slapHandsDist = 1.0;
 let deathAnimTimer = 0;
 let soulY = 0;
 
+// 開始畫面按鈕監聽
+const startScreen = document.getElementById("start-screen");
+const startGameBtn = document.getElementById("start-game-btn");
+const helpBtn = document.getElementById("help-btn");
+const helpModal = document.getElementById("help-modal");
+const closeHelpBtn = document.getElementById("close-help-btn");
+
+startGameBtn.addEventListener("click", () => {
+    startScreen.classList.add("hidden");
+    isGameStarted = true;
+    resetGame();
+});
+
+helpBtn.addEventListener("click", () => {
+    helpModal.style.display = "block";
+});
+
+closeHelpBtn.addEventListener("click", () => {
+    helpModal.style.display = "none";
+});
+
 document.getElementById("debug-btn").addEventListener("click", () => {
     showDebugBoxes = !showDebugBoxes;
     document.getElementById("debug-btn").innerText = showDebugBoxes ? "關閉熱區" : "👁 顯示熱區";
 });
 
-// 重置遊戲
 function resetGame() {
     mosquito.x = 389;
     mosquito.y = 700;
@@ -397,17 +553,19 @@ function resetGame() {
     deathAnimTimer = 0;
     soulY = 0;
     hurtFlashTimer = 0;
+    windWaveActive = false;
+    windWaveWarning = false;
     hazards = [];
     hazardSpawnTimer = 0;
     bloodParticles = [];
     blinkShadows = [];
     document.getElementById("qte-overlay").style.display = "none";
+    document.getElementById("dodge-popup").style.display = "none";
     document.getElementById("game-over-screen").style.display = "none";
 }
 
 document.getElementById("retry-btn").addEventListener("click", resetGame);
 
-// 精準熱區配置
 function getCharacterAreas() {
     return [
         { category: "BIRTHDAY_BOY", name: "壽星臉部", x: 385, y: 30, w: 130, h: 160 },
@@ -436,7 +594,6 @@ function getCurrentTarget() {
     return null;
 }
 
-// 虛擬搖桿
 const leftZone = document.getElementById("touch-left-zone");
 const arenaJoy = document.getElementById("arena-joystick");
 const arenaKnob = document.getElementById("arena-knob");
@@ -445,7 +602,7 @@ let joyOrigin = { x: 0, y: 0 };
 let currentTouchId = null;
 
 function onJoyStart(clientX, clientY, touchId = null) {
-    if (mosquito.isDead) return;
+    if (mosquito.isDead || !isGameStarted) return;
     joyActive = true;
     currentTouchId = touchId;
     joyOrigin = { x: clientX, y: clientY };
@@ -457,7 +614,7 @@ function onJoyStart(clientX, clientY, touchId = null) {
 }
 
 function onJoyMove(clientX, clientY) {
-    if (!joyActive || mosquito.isDead) return;
+    if (!joyActive || mosquito.isDead || !isGameStarted) return;
     let dx = clientX - joyOrigin.x;
     let dy = clientY - joyOrigin.y;
     const dist = Math.hypot(dx, dy);
@@ -480,12 +637,13 @@ function onJoyEnd() {
 
 leftZone.addEventListener("touchstart", (e) => {
     e.preventDefault();
-    if (joyActive || mosquito.isDead) return;
+    if (joyActive || mosquito.isDead || !isGameStarted) return;
     const t = e.changedTouches[0];
     onJoyStart(t.clientX, t.clientY, t.identifier);
-});
+}, { passive: false });
+
 window.addEventListener("touchmove", (e) => {
-    if (!joyActive || mosquito.isDead) return;
+    if (!joyActive || mosquito.isDead || !isGameStarted) return;
     for (let t of e.touches) {
         if (t.identifier === currentTouchId) {
             onJoyMove(t.clientX, t.clientY);
@@ -493,6 +651,7 @@ window.addEventListener("touchmove", (e) => {
         }
     }
 });
+
 window.addEventListener("touchend", (e) => {
     if (!joyActive) return;
     for (let t of e.changedTouches) {
@@ -507,12 +666,11 @@ leftZone.addEventListener("mousedown", (e) => onJoyStart(e.clientX, e.clientY));
 window.addEventListener("mousemove", (e) => { if (joyActive && currentTouchId === null) onJoyMove(e.clientX, e.clientY); });
 window.addEventListener("mouseup", (e) => { if (joyActive && currentTouchId === null) onJoyEnd(); });
 
-// 按鈕事件
 const suckBtn = document.getElementById("suck-btn");
 const blinkBtn = document.getElementById("blink-btn");
 
 function startSuck() {
-    if (mosquito.isDead) return;
+    if (mosquito.isDead || !isGameStarted) return;
     isSucking = true;
     suckBtn.classList.add("pressed");
 }
@@ -523,16 +681,27 @@ function stopSuck() {
 
 suckBtn.addEventListener("mousedown", startSuck);
 window.addEventListener("mouseup", stopSuck);
-suckBtn.addEventListener("touchstart", (e) => { e.preventDefault(); startSuck(); });
+suckBtn.addEventListener("touchstart", (e) => { e.preventDefault(); startSuck(); }, { passive: false });
 window.addEventListener("touchend", stopSuck);
 
-// 【傳說對決風格瞬移（閃現）】
-function triggerBlink() {
-    if (blinkCooldown <= 0 && !mosquito.isDead) {
-        blinkCooldown = 2.0; // 冷卻時間 2.0 秒
+function showDodgeEffect() {
+    const popup = document.getElementById("dodge-popup");
+    popup.style.display = "block";
+    popup.style.transform = "translate(-50%, -50%) scale(1.2)";
+    popup.style.opacity = "1";
+    setTimeout(() => {
+        popup.style.transform = "translate(-50%, -70%) scale(0.9)";
+        popup.style.opacity = "0";
+        setTimeout(() => { popup.style.display = "none"; }, 300);
+    }, 500);
+}
+
+function triggerBlink(e) {
+    if (e && e.preventDefault) e.preventDefault();
+    if (blinkCooldown <= 0 && !mosquito.isDead && isGameStarted) {
+        blinkCooldown = 2.0;
         stopSuck();
 
-        // 決定瞬移方向：若搖桿有推動則朝搖桿方向，否則朝蚊子面朝方向
         let dirX = joyVector.x;
         let dirY = joyVector.y;
         const mag = Math.hypot(dirX, dirY);
@@ -545,21 +714,18 @@ function triggerBlink() {
             dirY = 0;
         }
 
-        const blinkDist = 180; // 瞬移距離
+        const blinkDist = 180;
 
-        // 留下瞬移起點殘影
         blinkShadows.push({ x: mosquito.x, y: mosquito.y, alpha: 0.8, facingRight: mosquito.facingRight });
         blinkShadows.push({ x: mosquito.x + dirX * 60, y: mosquito.y + dirY * 60, alpha: 0.5, facingRight: mosquito.facingRight });
 
         mosquito.x += dirX * blinkDist;
         mosquito.y += dirY * blinkDist;
-        mosquito.invincibleTimer = 0.35; // 獲得 0.35 秒無敵時間
+        mosquito.invincibleTimer = 0.45;
 
-        // 邊界防禦
         mosquito.x = Math.max(25, Math.min(worldWidth - 25, mosquito.x));
         mosquito.y = Math.max(25, Math.min(worldHeight - 25, mosquito.y));
 
-        // 瞬移電芒音浪破空粒子
         for (let i = 0; i < 16; i++) {
             bloodParticles.push({
                 x: mosquito.x + (Math.random() - 0.5) * 30,
@@ -572,19 +738,23 @@ function triggerBlink() {
             });
         }
 
-        // 若正處於 QTE 巨掌合攏狀態，瞬移成功閃避！
+        if (windWaveActive && Math.abs(mosquito.x - windWaveX) < 160) {
+            showDodgeEffect();
+            alertVal = Math.max(0, alertVal - 15);
+        }
+
         if (qteActive) {
             qteActive = false;
             alertVal = 40;
+            showDodgeEffect();
             document.getElementById("qte-overlay").style.display = "none";
         }
     }
 }
 
 blinkBtn.addEventListener("click", triggerBlink);
-blinkBtn.addEventListener("touchstart", (e) => { e.preventDefault(); triggerBlink(); });
+blinkBtn.addEventListener("touchstart", triggerBlink, { passive: false });
 
-// 死亡處決判定
 function triggerDeath(reason) {
     if (mosquito.isDead) return;
     mosquito.isDead = true;
@@ -621,13 +791,11 @@ function triggerDeath(reason) {
     }, 1800);
 }
 
-// 雜物動態生成器
 function spawnHazard() {
     const types = ["SPRAY", "SWAT", "COIL"];
     const type = types[Math.floor(Math.random() * types.length)];
 
     if (type === "SPRAY") {
-        // 殺蟲劑噴霧：從隨機邊緣噴出大團前進毒霧
         const fromLeft = Math.random() < 0.5;
         hazards.push({
             type: "SPRAY",
@@ -638,7 +806,6 @@ function spawnHazard() {
             life: 6.0
         });
     } else if (type === "SWAT") {
-        // 電蚊拍：鎖定蚊子附近，先出紅線警戒 0.8 秒，隨後揮動帶電網面
         hazards.push({
             type: "SWAT",
             x: mosquito.x + (Math.random() - 0.5) * 100,
@@ -650,7 +817,6 @@ function spawnHazard() {
             struck: false
         });
     } else if (type === "COIL") {
-        // 燃燒蚊香：在畫面上像旋風般巡邏反彈
         hazards.push({
             type: "COIL",
             x: Math.random() * worldWidth,
@@ -671,6 +837,13 @@ function gameLoop(now) {
     const dt = (now - lastTime) / 1000;
     lastTime = now;
 
+    // 還沒按下 START GAME 之前，僅渲染底圖，不執行扣血與移動邏輯
+    if (!isGameStarted) {
+        render(null, now);
+        requestAnimationFrame(gameLoop);
+        return;
+    }
+
     if (hurtFlashTimer > 0) hurtFlashTimer -= dt;
     if (mosquito.invincibleTimer > 0) mosquito.invincibleTimer -= dt;
 
@@ -678,19 +851,23 @@ function gameLoop(now) {
         deathAnimTimer += dt;
         soulY -= 35 * dt;
         updateParticles(dt);
-        render(null);
+        render(null, now);
         requestAnimationFrame(gameLoop);
         return;
     }
 
-    // 瞬移冷卻時間更新
     if (blinkCooldown > 0) {
         blinkCooldown -= dt;
-        blinkBtn.innerText = blinkCooldown > 0 ? blinkCooldown.toFixed(1) : "⚡ 瞬移";
-        blinkBtn.style.opacity = blinkCooldown > 0 ? "0.6" : "1";
+        if (blinkCooldown <= 0) {
+            blinkCooldown = 0;
+            blinkBtn.innerText = "⚡ 瞬移";
+            blinkBtn.style.opacity = "1";
+        } else {
+            blinkBtn.innerText = blinkCooldown.toFixed(1);
+            blinkBtn.style.opacity = "0.6";
+        }
     }
 
-    // 搖桿平滑移動
     if (joyVector.x !== 0 || joyVector.y !== 0) {
         mosquito.x += joyVector.x * mosquito.speed * dt;
         mosquito.y += joyVector.y * mosquito.speed * dt;
@@ -702,7 +879,6 @@ function gameLoop(now) {
     mosquito.x = Math.max(20, Math.min(worldWidth - 20, mosquito.x));
     mosquito.y = Math.max(20, Math.min(worldHeight - 20, mosquito.y));
 
-    // 鏡頭鎖定
     const targetCamX = mosquito.x - (canvas.width / 2) / camera.zoom;
     const targetCamY = mosquito.y - (canvas.height / 2) / camera.zoom;
     camera.x += (targetCamX - camera.x) * 0.14;
@@ -714,9 +890,8 @@ function gameLoop(now) {
         mosquito.frameTimer = 0;
     }
 
-    // ---------------- 雜物生成與邏輯更新 ----------------
     hazardSpawnTimer += dt;
-    if (hazardSpawnTimer > 2.5) { // 每 2.5 秒隨機生出一種攻擊雜物
+    if (hazardSpawnTimer > 2.5) {
         spawnHazard();
         hazardSpawnTimer = 0;
     }
@@ -726,11 +901,10 @@ function gameLoop(now) {
         if (h.type === "SPRAY") {
             h.x += h.vx * dt;
             h.life -= dt;
-            // 毒霧碰撞判定
             if (mosquito.invincibleTimer <= 0) {
                 const dist = Math.hypot(mosquito.x - h.x, mosquito.y - h.y);
                 if (dist < h.radius) {
-                    health = Math.max(0, health - 28 * dt); // 毒氣持續大扣血
+                    health = Math.max(0, health - 28 * dt);
                     hurtFlashTimer = 0.1;
                     if (health <= 0) triggerDeath("SPRAY");
                 }
@@ -741,11 +915,10 @@ function gameLoop(now) {
                 h.warnTimer -= dt;
             } else if (h.strikeTimer > 0) {
                 h.strikeTimer -= dt;
-                // 電蚊拍打擊瞬間判定
                 if (!h.struck && mosquito.invincibleTimer <= 0) {
                     if (Math.abs(mosquito.x - h.x) < h.width / 2 && Math.abs(mosquito.y - h.y) < h.height / 2) {
                         h.struck = true;
-                        health = Math.max(0, health - 50); // 電蚊拍重創 50 滴血
+                        health = Math.max(0, health - 50);
                         hurtFlashTimer = 0.3;
                         if (health <= 0) triggerDeath("ZAPPED");
                     }
@@ -758,7 +931,6 @@ function gameLoop(now) {
             h.y += h.vy * dt;
             h.angle += 3 * dt;
             h.life -= dt;
-            // 牆壁反彈
             if (h.x < 30 || h.x > worldWidth - 30) h.vx *= -1;
             if (h.y < 30 || h.y > worldHeight - 30) h.vy *= -1;
 
@@ -774,10 +946,8 @@ function gameLoop(now) {
         }
     }
 
-    // ---------------- 飢餓與警覺度處理 ----------------
-    // 【核心設定】：未吸血狀態下，蚊子生命值持續下降（飢餓）
     if (!isSucking) {
-        health = Math.max(0, health - 3.2 * dt); // 每秒流失 3.2% 生命值
+        health = Math.max(0, health - 3.2 * dt);
         if (health <= 0) triggerDeath("STARVED");
     }
 
@@ -785,28 +955,37 @@ function gameLoop(now) {
         alertVal = Math.max(0, alertVal - 10 * dt);
     }
 
-    // 警覺度 40% 掌風
     if (alertVal >= 40) {
         windWaveTimer += dt;
+        if (windWaveTimer > 2.45 && !windWaveActive) {
+            windWaveWarning = true;
+        }
         if (windWaveTimer > 2.8) {
             windWaveActive = true;
-            windWaveX = mosquito.x - 300;
+            windWaveWarning = false;
+            windWaveX = mosquito.x - 320;
             windWaveTimer = 0;
         }
     } else {
         windWaveTimer = 0;
         windWaveActive = false;
+        windWaveWarning = false;
     }
 
     if (windWaveActive) {
         windWaveX += 720 * dt;
-        if (Math.abs(mosquito.x - windWaveX) < 45 && mosquito.invincibleTimer <= 0) {
-            stopSuck();
-            mosquito.x += (mosquito.x - windWaveX > 0 ? 90 : -90);
-            windWaveActive = false;
-            health = Math.max(0, health - 20);
-            hurtFlashTimer = 0.25;
-            if (health <= 0) triggerDeath("WIND_STRIKE");
+        if (Math.abs(mosquito.x - windWaveX) < 45) {
+            if (mosquito.invincibleTimer > 0) {
+                showDodgeEffect();
+                windWaveActive = false;
+            } else {
+                stopSuck();
+                mosquito.x += (mosquito.x - windWaveX > 0 ? 90 : -90);
+                windWaveActive = false;
+                health = Math.max(0, health - 20);
+                hurtFlashTimer = 0.25;
+                if (health <= 0) triggerDeath("WIND_STRIKE");
+            }
         }
         if (windWaveX > mosquito.x + 350) windWaveActive = false;
     }
@@ -814,7 +993,6 @@ function gameLoop(now) {
     let muscleTight = alertVal >= 70;
     if (muscleTight) screenShakeTimer += dt * 15;
 
-    // 警覺度 100% QTE
     if (alertVal >= 100 && !qteActive) {
         qteActive = true;
         qteTimer = 0.85;
@@ -828,7 +1006,6 @@ function gameLoop(now) {
         if (qteTimer <= 0) triggerDeath("SLAPPED");
     }
 
-    // ---------------- 吸血邏輯判定 ----------------
     const currentTarget = getCurrentTarget();
     const statusText = document.getElementById("status-text");
 
@@ -845,7 +1022,7 @@ function gameLoop(now) {
             
             essence = Math.min(100, essence + gain * dt);
             alertVal = Math.min(100, alertVal + alertSpd * dt);
-            health = Math.min(100, health + 14 * dt); // 吸血同時快速補充生命！
+            health = Math.min(100, health + 14 * dt);
             
             statusText.innerText = `🩸 汲取【${currentTarget.name}】精華液中！`;
             statusText.style.color = "#ff1744";
@@ -859,14 +1036,17 @@ function gameLoop(now) {
             if (health <= 0) triggerDeath("POISONED");
         } else if (currentTarget.category === "OTHER_FRIEND") {
             alertVal = Math.min(100, alertVal + 26 * dt);
-            health = Math.min(100, health + 10 * dt); // 吸朋友的血可回血，但不給精華
+            health = Math.min(100, health + 10 * dt);
             statusText.innerText = `🩸 正在叮咬【${currentTarget.name}】(回血有效，精華無效)`;
             statusText.style.color = "#ff9100";
             if (Math.random() < 0.6) _spawnBlood(mosquito.facingRight ? 11 : -11, 16, true);
         }
     } else {
         if (!qteActive && hurtFlashTimer <= 0) {
-            if (currentTarget) {
+            if (windWaveWarning) {
+                statusText.innerText = "⚠️ 掌風襲來警告！準備按【瞬移⚡】閃避！";
+                statusText.style.color = "#00e5ff";
+            } else if (currentTarget) {
                 if (currentTarget.category === "BIRTHDAY_BOY") {
                     statusText.innerText = `🟢 鎖定壽星部位：${currentTarget.name} (按住吸血回血)`;
                     statusText.style.color = "#76ff03";
@@ -890,7 +1070,7 @@ function gameLoop(now) {
     document.getElementById("health-bar").style.width = health + "%";
     document.getElementById("alert-bar").style.width = alertVal + "%";
 
-    render(currentTarget);
+    render(currentTarget, now);
     requestAnimationFrame(gameLoop);
 }
 
@@ -921,7 +1101,7 @@ function _spawnBlood(offsetX, offsetY, isRed) {
     });
 }
 
-function render(currentTarget) {
+function render(currentTarget, timestamp) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     ctx.save();
@@ -939,7 +1119,6 @@ function render(currentTarget) {
         ctx.drawImage(assets.bg, 0, 0, worldWidth, worldHeight);
     }
 
-    // 熱區可視化檢視
     if (showDebugBoxes) {
         const areas = getCharacterAreas();
         for (let a of areas) {
@@ -964,11 +1143,9 @@ function render(currentTarget) {
         }
     }
 
-    // 繪製動態雜物陷阱
     for (let h of hazards) {
         ctx.save();
         if (h.type === "SPRAY") {
-            // 殺蟲劑白霧
             let grad = ctx.createRadialGradient(h.x, h.y, 5, h.x, h.y, h.radius);
             grad.addColorStop(0, "rgba(255, 255, 255, 0.85)");
             grad.addColorStop(0.7, "rgba(230, 245, 255, 0.45)");
@@ -978,7 +1155,6 @@ function render(currentTarget) {
             ctx.arc(h.x, h.y, h.radius, 0, Math.PI * 2);
             ctx.fill();
         } else if (h.type === "SWAT") {
-            // 電蚊拍預警紅框與揮打電光
             if (h.warnTimer > 0) {
                 ctx.strokeStyle = "rgba(255, 23, 68, 0.85)";
                 ctx.lineWidth = 2;
@@ -995,7 +1171,6 @@ function render(currentTarget) {
                 ctx.strokeRect(h.x - h.width / 2, h.y - h.height / 2, h.width, h.height);
             }
         } else if (h.type === "COIL") {
-            // 旋轉蚊香
             ctx.translate(h.x, h.y);
             ctx.rotate(h.angle);
             ctx.strokeStyle = "#4e342e";
@@ -1003,7 +1178,6 @@ function render(currentTarget) {
             ctx.beginPath();
             ctx.arc(0, 0, h.radius, 0, Math.PI * 1.8);
             ctx.stroke();
-            // 蚊香燃燒火星紅點
             ctx.fillStyle = "#ff3d00";
             ctx.beginPath();
             ctx.arc(h.radius, 0, 3.5, 0, Math.PI * 2);
@@ -1012,17 +1186,27 @@ function render(currentTarget) {
         ctx.restore();
     }
 
-    // 掌風衝擊波
+    if (windWaveWarning) {
+        ctx.save();
+        ctx.strokeStyle = "rgba(0, 229, 255, 0.75)";
+        ctx.lineWidth = 2;
+        ctx.setLineDash([6, 6]);
+        ctx.beginPath();
+        ctx.moveTo(mosquito.x - 120, 0);
+        ctx.lineTo(mosquito.x - 120, worldHeight);
+        ctx.stroke();
+        ctx.restore();
+    }
+
     if (windWaveActive) {
         ctx.save();
         ctx.fillStyle = "rgba(255, 255, 255, 0.25)";
         ctx.fillRect(windWaveX - 25, 0, 50, worldHeight);
-        ctx.fillStyle = "rgba(255, 255, 255, 0.55)";
+        ctx.fillStyle = "rgba(255, 255, 255, 0.65)";
         ctx.fillRect(windWaveX - 6, 0, 12, worldHeight);
         ctx.restore();
     }
 
-    // 瞬移殘影
     for (let s of blinkShadows) {
         ctx.save();
         ctx.translate(s.x, s.y);
@@ -1035,7 +1219,6 @@ function render(currentTarget) {
         ctx.restore();
     }
 
-    // 粒子系統繪製
     for (let p of bloodParticles) {
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
@@ -1043,12 +1226,11 @@ function render(currentTarget) {
         ctx.fill();
     }
 
-    // 繪製蚊子角色
     ctx.save();
     ctx.translate(mosquito.x, mosquito.y);
     
-    // 無敵閃爍特效
-    if (mosquito.invincibleTimer > 0 && Math.floor(now / 40) % 2 === 0) {
+    const curTime = timestamp || performance.now();
+    if (mosquito.invincibleTimer > 0 && Math.floor(curTime / 40) % 2 === 0) {
         ctx.globalAlpha = 0.4;
     }
 
@@ -1093,7 +1275,6 @@ function render(currentTarget) {
     }
     ctx.restore();
 
-    // 繪製 QTE 巨掌合圍陰影剪影
     if (qteActive && !mosquito.isDead) {
         ctx.save();
         const offset = slapHandsDist * 160;
@@ -1109,7 +1290,6 @@ function render(currentTarget) {
 
     ctx.restore();
 
-    // 受傷全螢幕紅光
     if (hurtFlashTimer > 0) {
         ctx.save();
         ctx.fillStyle = `rgba(255, 0, 0, ${hurtFlashTimer * 1.5})`;
