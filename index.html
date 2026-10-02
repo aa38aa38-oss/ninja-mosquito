@@ -87,7 +87,7 @@
             z-index: 10;
             touch-action: none;
         }
-        /* 傳說對決同款外底環 */
+        /* 輪盤外底環 */
         #arena-joystick {
             position: absolute;
             width: 140px;
@@ -103,7 +103,7 @@
             z-index: 15;
             transition: opacity 0.15s ease-out;
         }
-        /* 傳說對決同款中心拖曳舵 */
+        /* 中心拖曳舵 */
         #arena-knob {
             position: absolute;
             width: 56px;
@@ -117,7 +117,7 @@
             pointer-events: none;
         }
 
-        /* 右側動作按鈕 (半透明懸浮在遊戲畫面上) */
+        /* 右側動作按鈕 */
         #action-container {
             position: absolute;
             right: 25px;
@@ -166,16 +166,13 @@
 <body>
 
 <div id="game-container">
-    <!-- 滿版大地圖畫布 -->
     <canvas id="gameCanvas"></canvas>
 
-    <!-- 傳說對決同款：左半邊任意點擊動態浮現輪盤 -->
     <div id="touch-left-zone"></div>
     <div id="arena-joystick">
         <div id="arena-knob"></div>
     </div>
 
-    <!-- 頂部懸浮 HUD -->
     <div id="hud">
         <div id="status-text">目標：探索合照尋找壽星</div>
         <div class="bar-container">
@@ -188,7 +185,6 @@
         </div>
     </div>
 
-    <!-- 右側懸浮技能與吸血按鈕 -->
     <div id="action-container">
         <div id="suck-btn" class="hud-btn">💉 吸血</div>
         <div id="skill-btn" class="hud-btn">💨 忍術</div>
@@ -206,7 +202,6 @@ function resize() {
 window.addEventListener("resize", resize);
 resize();
 
-// 圖片資源
 const assets = {
     bg: new Image(),
     fly1: new Image(),
@@ -224,21 +219,20 @@ let worldHeight = 1920;
 assets.bg.onload = function() {
     worldWidth = assets.bg.naturalWidth || 1080;
     worldHeight = assets.bg.naturalHeight || 1920;
-    // 預設將蚊子放置在壽星小腿附近的大地圖座標
     mosquito.x = worldWidth * 0.52;
     mosquito.y = worldHeight * 0.74;
 };
 
-// 鏡頭與蚊子設定
-// zoom 拉大到 2.6：背景照片超級特寫放大，使人的腿看起來極其粗大，蚊子比例逼真！
-const camera = { x: 0, y: 0, zoom: 2.6 };
+// 放大背景倍率至 3.8（超特寫巨觀視角）
+const camera = { x: 0, y: 0, zoom: 3.8 };
 
+// 縮小蚊子畫面像素面積至 48px，比例更逼真細緻
 const mosquito = {
     x: 550,
     y: 1300,
-    size: 95,            // 蚊子在螢幕上維持舒適清晰的手感尺寸
-    speed: 350,          // 平穩穩健的探索飛行速度
-    dashSpeed: 2100,
+    size: 48,
+    speed: 280,
+    dashSpeed: 1600,
     flipH: false,
     frame: 0,
     frameTimer: 0
@@ -252,7 +246,6 @@ let dashTime = 0;
 let skillCooldown = 0;
 let joyVector = { x: 0, y: 0 };
 
-// 大地圖部位判定區
 function getAreas() {
     return [
         { type: "LEG", name: "壽星小腿", x: worldWidth * 0.46, y: worldHeight * 0.65, w: worldWidth * 0.12, h: worldHeight * 0.22 },
@@ -273,7 +266,6 @@ function getTargetArea() {
     return null;
 }
 
-// --- 傳說對決同款：左半邊任意點擊動態浮現輪盤 ---
 const leftZone = document.getElementById("touch-left-zone");
 const arenaJoy = document.getElementById("arena-joystick");
 const arenaKnob = document.getElementById("arena-knob");
@@ -339,12 +331,10 @@ window.addEventListener("touchend", (e) => {
     }
 });
 
-// 電腦滑鼠操作支援
 leftZone.addEventListener("mousedown", (e) => onJoyStart(e.clientX, e.clientY));
 window.addEventListener("mousemove", (e) => { if (joyActive && currentTouchId === null) onJoyMove(e.clientX, e.clientY); });
 window.addEventListener("mouseup", (e) => { if (joyActive && currentTouchId === null) onJoyEnd(); });
 
-// 按鈕事件
 const suckBtn = document.getElementById("suck-btn");
 const skillBtn = document.getElementById("skill-btn");
 
@@ -365,7 +355,6 @@ skillBtn.addEventListener("click", () => {
     }
 });
 
-// 主遊戲循環
 let lastTime = performance.now();
 let suckTick = 0;
 
@@ -392,10 +381,10 @@ function gameLoop(now) {
         }
     }
 
-    mosquito.x = Math.max(60, Math.min(worldWidth - 60, mosquito.x));
-    mosquito.y = Math.max(60, Math.min(worldHeight - 60, mosquito.y));
+    mosquito.x = Math.max(30, Math.min(worldWidth - 30, mosquito.x));
+    mosquito.y = Math.max(30, Math.min(worldHeight - 30, mosquito.y));
 
-    // 鏡頭鎖定特寫平滑跟隨
+    // 鏡頭鎖定平滑特寫
     const targetCamX = mosquito.x - (canvas.width / 2) / camera.zoom;
     const targetCamY = mosquito.y - (canvas.height / 2) / camera.zoom;
     camera.x += (targetCamX - camera.x) * 0.14;
@@ -450,7 +439,6 @@ function render(currentTarget) {
     ctx.scale(camera.zoom, camera.zoom);
     ctx.translate(-camera.x, -camera.y);
 
-    // 1. 繪製特寫大地圖合照
     if (assets.bg.complete) {
         ctx.drawImage(assets.bg, 0, 0, worldWidth, worldHeight);
     } else {
@@ -458,23 +446,23 @@ function render(currentTarget) {
         ctx.fillRect(0, 0, worldWidth, worldHeight);
     }
 
-    // 2. 吸血流動光柱特效
+    // 微調後的細緻吸血光柱特效
     if (isSucking && currentTarget) {
         const mouthX = mosquito.x;
-        const mouthY = mosquito.y + 32;
+        const mouthY = mosquito.y + 16;
         const skinX = mosquito.x;
-        const skinY = mosquito.y + 68;
+        const skinY = mosquito.y + 36;
         const isRed = currentTarget.type !== "FAT_MAN";
 
         ctx.beginPath();
-        ctx.arc(skinX, skinY, 16, 0, Math.PI * 2);
+        ctx.arc(skinX, skinY, 9, 0, Math.PI * 2);
         ctx.fillStyle = isRed ? "rgba(255, 23, 68, 0.45)" : "rgba(0, 230, 118, 0.45)";
         ctx.fill();
 
         ctx.beginPath();
         ctx.moveTo(skinX, skinY);
         ctx.lineTo(mouthX, mouthY);
-        ctx.lineWidth = 8 + Math.sin(suckTick) * 2;
+        ctx.lineWidth = 4 + Math.sin(suckTick) * 1.2;
         ctx.strokeStyle = isRed ? "rgba(255, 23, 68, 0.9)" : "rgba(0, 230, 118, 0.9)";
         ctx.stroke();
 
@@ -483,13 +471,13 @@ function render(currentTarget) {
             let px = skinX + (mouthX - skinX) * t;
             let py = skinY + (mouthY - skinY) * t;
             ctx.beginPath();
-            ctx.arc(px, py, 4.5, 0, Math.PI * 2);
+            ctx.arc(px, py, 2.5, 0, Math.PI * 2);
             ctx.fillStyle = "#fff";
             ctx.fill();
         }
     }
 
-    // 3. 繪製蚊子
+    // 縮小版蚊子本體
     ctx.save();
     ctx.translate(mosquito.x, mosquito.y);
     if (mosquito.flipH) ctx.scale(-1, 1);
@@ -497,7 +485,7 @@ function render(currentTarget) {
     let currentImg = assets.fly1;
     if (isSucking && currentTarget && currentTarget.type === "FAT_MAN") {
         currentImg = assets.dizzy.complete ? assets.dizzy : assets.fly1;
-        ctx.translate((Math.random() - 0.5) * 6, (Math.random() - 0.5) * 6);
+        ctx.translate((Math.random() - 0.5) * 4, (Math.random() - 0.5) * 4);
     } else {
         currentImg = mosquito.frame === 0 ? assets.fly1 : assets.fly2;
     }
