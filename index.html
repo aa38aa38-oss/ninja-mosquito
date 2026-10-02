@@ -223,17 +223,17 @@ assets.bg.onload = function() {
     mosquito.y = worldHeight * 0.74;
 };
 
-// 放大背景倍率至 3.8（超特寫巨觀視角）
+// 放大背景倍率維持 3.8（超特寫巨觀視角）
 const camera = { x: 0, y: 0, zoom: 3.8 };
 
-// 縮小蚊子畫面像素面積至 48px，比例更逼真細緻
+// 蚊子尺寸維持 48px
 const mosquito = {
     x: 550,
     y: 1300,
     size: 48,
     speed: 280,
     dashSpeed: 1600,
-    flipH: false,
+    facingRight: true,   // 面向方向標記：預設面向右方
     frame: 0,
     frameTimer: 0
 };
@@ -376,7 +376,13 @@ function gameLoop(now) {
         if (joyVector.x !== 0 || joyVector.y !== 0) {
             mosquito.x += joyVector.x * mosquito.speed * dt;
             mosquito.y += joyVector.y * mosquito.speed * dt;
-            mosquito.flipH = joyVector.x > 0;
+            
+            // 修正面向：往右搖桿（x > 0.05）面向右邊，往左搖桿（x < -0.05）面向左邊
+            if (joyVector.x > 0.05) {
+                mosquito.facingRight = true;
+            } else if (joyVector.x < -0.05) {
+                mosquito.facingRight = false;
+            }
             stopSuck();
         }
     }
@@ -446,7 +452,7 @@ function render(currentTarget) {
         ctx.fillRect(0, 0, worldWidth, worldHeight);
     }
 
-    // 微調後的細緻吸血光柱特效
+    // 吸血光柱特效
     if (isSucking && currentTarget) {
         const mouthX = mosquito.x;
         const mouthY = mosquito.y + 16;
@@ -477,10 +483,16 @@ function render(currentTarget) {
         }
     }
 
-    // 縮小版蚊子本體
+    // 繪製蚊子角色（精準面向修正）
     ctx.save();
     ctx.translate(mosquito.x, mosquito.y);
-    if (mosquito.flipH) ctx.scale(-1, 1);
+    
+    // 原素材預設面向左側：面向右時水平翻轉（-1, 1），面向左時保持原樣（1, 1）
+    if (mosquito.facingRight) {
+        ctx.scale(-1, 1);
+    } else {
+        ctx.scale(1, 1);
+    }
 
     let currentImg = assets.fly1;
     if (isSucking && currentTarget && currentTarget.type === "FAT_MAN") {
