@@ -38,8 +38,7 @@
             left: 0;
             width: 100vw;
             height: 100vh;
-            background: #000 url('cover.png') no-repeat center center;
-            background-size: cover;
+            background-color: #000;
             z-index: 100;
             display: flex;
             flex-direction: column;
@@ -47,6 +46,18 @@
             align-items: center;
             padding-bottom: env(safe-area-inset-bottom, 50px);
             transition: opacity 0.4s ease, visibility 0.4s;
+            overflow: hidden;
+        }
+        #cover-img {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: center;
+            z-index: 1;
+            pointer-events: none;
         }
         #start-screen.hidden {
             opacity: 0;
@@ -54,6 +65,8 @@
             pointer-events: none;
         }
         .start-btn-group {
+            position: relative;
+            z-index: 2;
             display: flex;
             flex-direction: column;
             gap: 14px;
@@ -101,7 +114,7 @@
             transform: translate(-50%, -50%);
             width: 86%;
             max-width: 360px;
-            background: rgba(15, 15, 25, 0.94);
+            background: rgba(15, 15, 25, 0.95);
             border: 2px solid #00e5ff;
             border-radius: 18px;
             padding: 22px 20px;
@@ -376,8 +389,9 @@
 <div id="game-container">
     <canvas id="gameCanvas"></canvas>
 
-    <!-- 封面開始畫面 -->
+    <!-- 封面開始畫面 (實體 img 標籤保證載入) -->
     <div id="start-screen">
+        <img id="cover-img" src="cover.png" alt="封面">
         <div class="start-btn-group">
             <div id="start-game-btn" class="menu-btn">START GAME</div>
             <div id="help-btn" class="menu-btn">HOW TO PLAY</div>
@@ -480,7 +494,7 @@ const mosquito = {
     invincibleTimer: 0
 };
 
-// 遊戲狀態開關：一開始在選單封面上
+// 遊戲狀態：一開始在選單封面上
 let isGameStarted = false;
 
 let essence = 0;
@@ -510,7 +524,7 @@ let slapHandsDist = 1.0;
 let deathAnimTimer = 0;
 let soulY = 0;
 
-// 開始畫面按鈕監聽
+// 開始畫面按鈕事件
 const startScreen = document.getElementById("start-screen");
 const startGameBtn = document.getElementById("start-game-btn");
 const helpBtn = document.getElementById("help-btn");
@@ -837,7 +851,6 @@ function gameLoop(now) {
     const dt = (now - lastTime) / 1000;
     lastTime = now;
 
-    // 還沒按下 START GAME 之前，僅渲染底圖，不執行扣血與移動邏輯
     if (!isGameStarted) {
         render(null, now);
         requestAnimationFrame(gameLoop);
