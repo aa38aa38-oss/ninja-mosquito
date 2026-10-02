@@ -223,17 +223,17 @@ assets.bg.onload = function() {
     mosquito.y = worldHeight * 0.74;
 };
 
-// 放大背景倍率維持 3.8（超特寫巨觀視角）
+// 背景超特寫放大倍率
 const camera = { x: 0, y: 0, zoom: 3.8 };
 
-// 蚊子尺寸維持 48px
+// 蚊子參數
 const mosquito = {
     x: 550,
     y: 1300,
     size: 48,
     speed: 280,
     dashSpeed: 1600,
-    facingRight: true,   // 面向方向標記：預設面向右方
+    facingRight: true,   // 預設面向右邊
     frame: 0,
     frameTimer: 0
 };
@@ -377,7 +377,7 @@ function gameLoop(now) {
             mosquito.x += joyVector.x * mosquito.speed * dt;
             mosquito.y += joyVector.y * mosquito.speed * dt;
             
-            // 修正面向：往右搖桿（x > 0.05）面向右邊，往左搖桿（x < -0.05）面向左邊
+            // 往右移動判斷
             if (joyVector.x > 0.05) {
                 mosquito.facingRight = true;
             } else if (joyVector.x < -0.05) {
@@ -390,7 +390,7 @@ function gameLoop(now) {
     mosquito.x = Math.max(30, Math.min(worldWidth - 30, mosquito.x));
     mosquito.y = Math.max(30, Math.min(worldHeight - 30, mosquito.y));
 
-    // 鏡頭鎖定平滑特寫
+    // 鏡頭鎖定
     const targetCamX = mosquito.x - (canvas.width / 2) / camera.zoom;
     const targetCamY = mosquito.y - (canvas.height / 2) / camera.zoom;
     camera.x += (targetCamX - camera.x) * 0.14;
@@ -452,7 +452,7 @@ function render(currentTarget) {
         ctx.fillRect(0, 0, worldWidth, worldHeight);
     }
 
-    // 吸血光柱特效
+    // 吸血特效
     if (isSucking && currentTarget) {
         const mouthX = mosquito.x;
         const mouthY = mosquito.y + 16;
@@ -483,15 +483,15 @@ function render(currentTarget) {
         }
     }
 
-    // 繪製蚊子角色（精準面向修正）
+    // 繪製蚊子角色：徹底校正面向
     ctx.save();
     ctx.translate(mosquito.x, mosquito.y);
     
-    // 原素材預設面向左側：面向右時水平翻轉（-1, 1），面向左時保持原樣（1, 1）
+    // 【核心修正】：往右時正向 (1, 1)，往左時翻轉 (-1, 1)
     if (mosquito.facingRight) {
-        ctx.scale(-1, 1);
-    } else {
         ctx.scale(1, 1);
+    } else {
+        ctx.scale(-1, 1);
     }
 
     let currentImg = assets.fly1;
