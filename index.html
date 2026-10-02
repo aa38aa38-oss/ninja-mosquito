@@ -36,7 +36,7 @@
             position: absolute;
             top: env(safe-area-inset-top, 15px);
             left: 20px;
-            width: 290px;
+            width: 280px;
             max-width: 65vw;
             color: #fff;
             text-shadow: 2px 2px 4px #000;
@@ -81,6 +81,21 @@
             width: 0%;
             height: 100%;
             background: linear-gradient(90deg, #ff9100, #d50000);
+        }
+
+        /* 右上角：熱區顯示開關按鈕 (方便即時檢視所有人的臉、手、腿框框) */
+        #debug-btn {
+            position: absolute;
+            top: env(safe-area-inset-top, 15px);
+            right: 20px;
+            padding: 6px 12px;
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            border-radius: 14px;
+            color: #fff;
+            font-size: 12px;
+            z-index: 35;
+            cursor: pointer;
         }
 
         /* 左半邊動態搖桿感應區 */
@@ -175,6 +190,9 @@
         <div id="arena-knob"></div>
     </div>
 
+    <!-- 熱區檢視切換 -->
+    <div id="debug-btn">👁️ 顯示熱區</div>
+
     <div id="hud">
         <div id="status-text">目標：探索合照尋找壽星</div>
         <div class="bar-container">
@@ -227,28 +245,28 @@ let worldHeight = 1920;
 assets.bg.onload = function() {
     worldWidth = assets.bg.naturalWidth || 1080;
     worldHeight = assets.bg.naturalHeight || 1920;
-    // 預設誕生在壽星小腿附近
     mosquito.x = worldWidth * 0.52;
     mosquito.y = worldHeight * 0.74;
 };
 
+// 保持大視野特寫倍率
 const camera = { x: 0, y: 0, zoom: 3.8 };
 
+// 【蚊子縮小】：直徑從 48px 進一步縮小為 32px，真正昆蟲比例！
 const mosquito = {
     x: 550,
     y: 1300,
-    size: 48,
-    speed: 280,
-    dashSpeed: 1600,
+    size: 32,
+    speed: 260,
+    dashSpeed: 1500,
     facingRight: true,
     frame: 0,
     frameTimer: 0
 };
 
-// 數值系統
-let essence = 0;      // 壽星精華液 (0 ~ 100)
-let health = 100;     // 蚊子生命值 (0 ~ 100)
-let alertVal = 0;     // 警覺度 (0 ~ 100)
+let essence = 0;
+let health = 100;
+let alertVal = 0;
 
 let isSucking = false;
 let isDashing = false;
@@ -257,31 +275,46 @@ let skillCooldown = 0;
 let joyVector = { x: 0, y: 0 };
 
 let bloodParticles = [];
+let showDebugBoxes = false; // 是否顯示熱區框
 
-// 精準定義合照中四個人的人體皮膚分區 (相對於世界地圖像素寬高)
+// 熱區開關切換
+document.getElementById("debug-btn").addEventListener("click", () => {
+    showDebugBoxes = !showDebugBoxes;
+    document.getElementById("debug-btn").innerText = showDebugBoxes ? "關閉熱區" : "👁️ 顯示熱區";
+});
+
+// 【核心修正】：精準重配全圖四個人的臉部、手臂、腿部位置
+// 依據原始合照高度：臉部在頂部 8%~26%，手臂在 24%~48%，小腿在 58%~88%
 function getCharacterAreas() {
     return [
-        // 1. 壽星（情況 1：右二男子，黑T比雙讚）
-        { category: "BIRTHDAY_BOY", name: "壽星小腿", x: worldWidth * 0.46, y: worldHeight * 0.65, w: worldWidth * 0.11, h: worldHeight * 0.22 },
-        { category: "BIRTHDAY_BOY", name: "壽星手臂", x: worldWidth * 0.55, y: worldHeight * 0.40, w: worldWidth * 0.11, h: worldHeight * 0.16 },
-        { category: "BIRTHDAY_BOY", name: "壽星臉部", x: worldWidth * 0.48, y: worldHeight * 0.22, w: worldWidth * 0.10, h: worldHeight * 0.13 },
+        // ---------------- 1. 壽星 (右二，黑衣比雙讚，主角) ----------------
+        // 壽星臉部 (戴眼鏡、開心笑臉)
+        { category: "BIRTHDAY_BOY", name: "壽星臉部", x: worldWidth * 0.47, y: worldHeight * 0.08, w: worldWidth * 0.13, h: worldHeight * 0.16 },
+        // 壽星比讚手臂 (左右兩隻露出的小臂與手勢)
+        { category: "BIRTHDAY_BOY", name: "壽星雙手手臂", x: worldWidth * 0.44, y: worldHeight * 0.24, w: worldWidth * 0.18, h: worldHeight * 0.17 },
+        // 壽星短褲下的小腿與拖鞋
+        { category: "BIRTHDAY_BOY", name: "壽星小腿", x: worldWidth * 0.46, y: worldHeight * 0.58, w: worldWidth * 0.12, h: worldHeight * 0.28 },
 
-        // 2. 胖子（情況 2：左二男子，黑背心戴眼鏡）
-        { category: "FAT_MAN", name: "胖子手臂與身體", x: worldWidth * 0.24, y: worldHeight * 0.32, w: worldWidth * 0.16, h: worldHeight * 0.28 },
-        { category: "FAT_MAN", name: "胖子小腿", x: worldWidth * 0.23, y: worldHeight * 0.62, w: worldWidth * 0.14, h: worldHeight * 0.24 },
+        // ---------------- 2. 胖子 (左二，黑背心，懲罰目標) ----------------
+        // 胖子頭臉部
+        { category: "FAT_MAN", name: "胖子臉部", x: worldWidth * 0.28, y: worldHeight * 0.10, w: worldWidth * 0.14, h: worldHeight * 0.15 },
+        // 胖子手臂與背心裸露處
+        { category: "FAT_MAN", name: "胖子手臂", x: worldWidth * 0.24, y: worldHeight * 0.25, w: worldWidth * 0.18, h: worldHeight * 0.18 },
+        // 胖子小腿
+        { category: "FAT_MAN", name: "胖子小腿", x: worldWidth * 0.22, y: worldHeight * 0.58, w: worldWidth * 0.16, h: worldHeight * 0.26 },
 
-        // 3. 其他朋友 A（情況 3：左一白球衣朋友）
-        { category: "OTHER_FRIEND", name: "白衣朋友手臂", x: worldWidth * 0.08, y: worldHeight * 0.38, w: worldWidth * 0.14, h: worldHeight * 0.20 },
-        { category: "OTHER_FRIEND", name: "白衣朋友小腿", x: worldWidth * 0.10, y: worldHeight * 0.64, w: worldWidth * 0.12, h: worldHeight * 0.24 },
+        // ---------------- 3. 其他朋友 A (左一，白球衣朋友) ----------------
+        { category: "OTHER_FRIEND", name: "白衣朋友臉部", x: worldWidth * 0.10, y: worldHeight * 0.11, w: worldWidth * 0.13, h: worldHeight * 0.15 },
+        { category: "OTHER_FRIEND", name: "白衣朋友手臂", x: worldWidth * 0.07, y: worldHeight * 0.26, w: worldWidth * 0.14, h: worldHeight * 0.18 },
+        { category: "OTHER_FRIEND", name: "白衣朋友小腿", x: worldWidth * 0.09, y: worldHeight * 0.58, w: worldWidth * 0.13, h: worldHeight * 0.27 },
 
-        // 3. 其他朋友 B（情況 3：右一灰衣朋友）
-        { category: "OTHER_FRIEND", name: "灰衣朋友臉部與頸部", x: worldWidth * 0.68, y: worldHeight * 0.22, w: worldWidth * 0.10, h: worldHeight * 0.13 },
-        { category: "OTHER_FRIEND", name: "灰衣朋友手臂", x: worldWidth * 0.67, y: worldHeight * 0.38, w: worldWidth * 0.11, h: worldHeight * 0.20 },
-        { category: "OTHER_FRIEND", name: "灰衣朋友腳踝", x: worldWidth * 0.70, y: worldHeight * 0.78, w: worldWidth * 0.09, h: worldHeight * 0.12 }
+        // ---------------- 3. 其他朋友 B (右一，灰衣朋友) ----------------
+        { category: "OTHER_FRIEND", name: "灰衣朋友臉部", x: worldWidth * 0.67, y: worldHeight * 0.09, w: worldWidth * 0.12, h: worldHeight * 0.15 },
+        { category: "OTHER_FRIEND", name: "灰衣朋友手臂", x: worldWidth * 0.65, y: worldHeight * 0.24, w: worldWidth * 0.12, h: worldHeight * 0.18 },
+        { category: "OTHER_FRIEND", name: "灰衣朋友露出的腳踝", x: worldWidth * 0.68, y: worldHeight * 0.74, w: worldWidth * 0.10, h: worldHeight * 0.16 }
     ];
 }
 
-// 判定當前蚊子停靠處
 function getCurrentTarget() {
     const areas = getCharacterAreas();
     for (let a of areas) {
@@ -290,7 +323,6 @@ function getCurrentTarget() {
             return a;
         }
     }
-    // 不在任何皮膚上（情況 4：背景/衣物）
     return null;
 }
 
@@ -431,7 +463,6 @@ function gameLoop(now) {
         mosquito.frameTimer = 0;
     }
 
-    // 核心：四種吸血情況判定
     const currentTarget = getCurrentTarget();
     const statusText = document.getElementById("status-text");
 
@@ -439,35 +470,33 @@ function gameLoop(now) {
         suckTick += dt * 18;
 
         if (!currentTarget) {
-            // 情況 4：咬在非皮膚部位 (背景、衣物) -> 無變化
             statusText.innerText = "❌ 咬到衣服或背景！無法吸血";
             statusText.style.color = "#bbb";
             alertVal = Math.max(0, alertVal - 10 * dt);
         } else if (currentTarget.category === "BIRTHDAY_BOY") {
-            // 情況 1：吸到壽星 -> 增加精華液與警覺度
-            essence = Math.min(100, essence + 22 * dt);
-            alertVal = Math.min(100, alertVal + 24 * dt);
+            // 吸壽星：部位不同收益不同
+            let gain = currentTarget.name.includes("臉") ? 36 : (currentTarget.name.includes("手") ? 25 : 16);
+            let alertSpd = currentTarget.name.includes("臉") ? 40 : (currentTarget.name.includes("手") ? 24 : 14);
+            essence = Math.min(100, essence + gain * dt);
+            alertVal = Math.min(100, alertVal + alertSpd * dt);
             statusText.innerText = `🩸 正在汲取【${currentTarget.name}】純度精華！`;
             statusText.style.color = "#ff1744";
 
-            // 生成鮮血粒子
             if (Math.random() < 0.6) {
-                _spawnBlood(mosquito.facingRight ? 16 : -16, 24, true);
+                _spawnBlood(mosquito.facingRight ? 11 : -11, 16, true);
             }
         } else if (currentTarget.category === "FAT_MAN") {
-            // 情況 2：吸到胖子 -> 扣除生命值，陷入中毒暈眩
             health = Math.max(0, health - 35 * dt);
             alertVal = Math.min(100, alertVal + 60 * dt);
             statusText.innerText = "🌀 嘔！吸到胖子油膩毒血！生命受損！";
             statusText.style.color = "#00e676";
         } else if (currentTarget.category === "OTHER_FRIEND") {
-            // 情況 3：吸到其他兩位朋友 -> 有吸血動作與特效，但精華液不變 (0%)
             alertVal = Math.min(100, alertVal + 18 * dt);
             statusText.innerText = `🩸 正在叮咬【${currentTarget.name}】... 但精華無效！`;
             statusText.style.color = "#ff9100";
 
             if (Math.random() < 0.6) {
-                _spawnBlood(mosquito.facingRight ? 16 : -16, 24, true);
+                _spawnBlood(mosquito.facingRight ? 11 : -11, 16, true);
             }
         }
     } else {
@@ -477,7 +506,7 @@ function gameLoop(now) {
                 statusText.innerText = `🟢 鎖定壽星部位：${currentTarget.name} (按住吸血)`;
                 statusText.style.color = "#76ff03";
             } else if (currentTarget.category === "FAT_MAN") {
-                statusText.innerText = "⚠️ 這是路人胖子！(吸了會扣命中毒)";
+                statusText.innerText = `⚠️ 這是路人胖子！(${currentTarget.name} 別吸)`;
                 statusText.style.color = "#ff5252";
             } else {
                 statusText.innerText = `⚪ 發現目標：${currentTarget.name} (按住吸血)`;
@@ -489,13 +518,13 @@ function gameLoop(now) {
         }
     }
 
-    // 更新血滴物理軌跡
+    // 血滴軌跡
     for (let i = bloodParticles.length - 1; i >= 0; i--) {
         let p = bloodParticles[i];
         p.x += p.vx * dt;
         p.y += p.vy * dt;
-        p.vy += 120 * dt;
-        p.alpha -= 2.2 * dt;
+        p.vy += 100 * dt;
+        p.alpha -= 2.5 * dt;
         if (p.alpha <= 0) bloodParticles.splice(i, 1);
     }
 
@@ -511,9 +540,9 @@ function _spawnBlood(offsetX, offsetY, isRed) {
     bloodParticles.push({
         x: mosquito.x + offsetX,
         y: mosquito.y + offsetY,
-        vx: (Math.random() - 0.5) * 60,
-        vy: -Math.random() * 80 - 30,
-        radius: Math.random() * 2.5 + 1.5,
+        vx: (Math.random() - 0.5) * 45,
+        vy: -Math.random() * 60 - 20,
+        radius: Math.random() * 1.8 + 1.0,
         alpha: 1.0,
         isRed: isRed
     });
@@ -533,22 +562,46 @@ function render(currentTarget) {
         ctx.fillRect(0, 0, worldWidth, worldHeight);
     }
 
-    const needleTipX = mosquito.x + (mosquito.facingRight ? 16 : -16);
-    const needleTipY = mosquito.y + 24;
+    // --- 若開啟「顯示熱區」，在畫面上把每個人身上的框框畫出來 ---
+    if (showDebugBoxes) {
+        const areas = getCharacterAreas();
+        for (let a of areas) {
+            ctx.save();
+            if (a.category === "BIRTHDAY_BOY") {
+                ctx.fillStyle = "rgba(76, 175, 80, 0.28)"; // 壽星綠色
+                ctx.strokeStyle = "rgba(76, 175, 80, 0.9)";
+            } else if (a.category === "FAT_MAN") {
+                ctx.fillStyle = "rgba(244, 67, 54, 0.28)"; // 胖子紅色
+                ctx.strokeStyle = "rgba(244, 67, 54, 0.9)";
+            } else {
+                ctx.fillStyle = "rgba(33, 150, 243, 0.28)"; // 其他人藍色
+                ctx.strokeStyle = "rgba(33, 150, 243, 0.9)";
+            }
+            ctx.lineWidth = 2;
+            ctx.fillRect(a.x, a.y, a.w, a.h);
+            ctx.strokeRect(a.x, a.y, a.w, a.h);
+            ctx.font = "14px sans-serif";
+            ctx.fillStyle = "#fff";
+            ctx.fillText(a.name, a.x + 4, a.y + 18);
+            ctx.restore();
+        }
+    }
 
-    // --- 繪製吸血特效 (只有情況 1、2、3 有特效，情況 4 什麼都沒有) ---
+    // 針尖微型座標（配合 32px 尺寸縮小）
+    const needleTipX = mosquito.x + (mosquito.facingRight ? 11 : -11);
+    const needleTipY = mosquito.y + 16;
+
+    // --- 吸血特效 ---
     if (isSucking && currentTarget) {
         if (currentTarget.category === "FAT_MAN") {
-            // 情況 2：胖子暗綠毒光圈
             ctx.beginPath();
-            ctx.arc(needleTipX, needleTipY, 8, 0, Math.PI * 2);
+            ctx.arc(needleTipX, needleTipY, 5, 0, Math.PI * 2);
             ctx.fillStyle = "rgba(0, 230, 118, 0.4)";
             ctx.fill();
         } else {
-            // 情況 1 與 情況 3：真實鮮紅噴灑特效
-            const pulseRadius = 7 + Math.sin(suckTick * 1.5) * 2.5;
+            const pulseRadius = 5 + Math.sin(suckTick * 1.5) * 1.5;
             ctx.beginPath();
-            ctx.arc(needleTipX, needleTipY, pulseRadius + 5, 0, Math.PI * 2);
+            ctx.arc(needleTipX, needleTipY, pulseRadius + 3, 0, Math.PI * 2);
             ctx.fillStyle = "rgba(255, 23, 68, 0.35)";
             ctx.fill();
 
@@ -558,27 +611,16 @@ function render(currentTarget) {
             ctx.fill();
 
             // 針管抽取光柱
-            const barrelTopX = mosquito.x + (mosquito.facingRight ? 12 : -12);
-            const barrelTopY = mosquito.y - 4;
+            const barrelTopX = mosquito.x + (mosquito.facingRight ? 8 : -8);
+            const barrelTopY = mosquito.y - 2;
             ctx.beginPath();
             ctx.moveTo(needleTipX, needleTipY);
             ctx.lineTo(barrelTopX, barrelTopY);
-            ctx.lineWidth = 3.5 + Math.sin(suckTick * 2.0) * 1.0;
+            ctx.lineWidth = 2.2 + Math.sin(suckTick * 2.0) * 0.6;
             ctx.strokeStyle = "rgba(255, 60, 60, 0.9)";
             ctx.stroke();
 
-            // 上浮氣泡
-            for (let i = 0; i < 3; i++) {
-                let t = ((suckTick * 0.15) + i * 0.33) % 1;
-                let bx = needleTipX + (barrelTopX - needleTipX) * t;
-                let by = needleTipY + (barrelTopY - needleTipY) * t;
-                ctx.beginPath();
-                ctx.arc(bx, by, 1.6, 0, Math.PI * 2);
-                ctx.fillStyle = "rgba(255, 255, 255, 0.95)";
-                ctx.fill();
-            }
-
-            // 噴濺血粒子
+            // 血滴噴濺
             for (let p of bloodParticles) {
                 ctx.beginPath();
                 ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
@@ -588,11 +630,10 @@ function render(currentTarget) {
         }
     }
 
-    // --- 繪製蚊子角色 ---
+    // --- 繪製縮小版蚊子本體 (32px) ---
     ctx.save();
     ctx.translate(mosquito.x, mosquito.y);
     
-    // 朝向判定
     if (mosquito.facingRight) {
         ctx.scale(1, 1);
     } else {
@@ -601,19 +642,15 @@ function render(currentTarget) {
 
     let currentImg = assets.fly1;
 
-    // 只有停靠在人體（情況 1、2、3）吸血時才換圖；情況 4 (咬在背景) 維持原樣飛行拍翅
     if (isSucking && currentTarget) {
         if (currentTarget.category === "FAT_MAN") {
-            // 情況 2：吸到胖子切換蚊香眼暈眩圖
             currentImg = assets.dizzy.complete ? assets.dizzy : assets.fly1;
-            ctx.translate((Math.random() - 0.5) * 4, (Math.random() - 0.5) * 4);
+            ctx.translate((Math.random() - 0.5) * 3, (Math.random() - 0.5) * 3);
         } else {
-            // 情況 1 與 情況 3：持針筒扎馬步專注吸血
             currentImg = assets.suck.complete ? assets.suck : assets.fly1;
-            ctx.translate(0, Math.sin(suckTick * 2.0) * 1.2);
+            ctx.translate(0, Math.sin(suckTick * 2.0) * 0.8);
         }
     } else {
-        // 常規飛行拍翅
         currentImg = mosquito.frame === 0 ? assets.fly1 : assets.fly2;
     }
 
