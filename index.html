@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>忍者蚊子 - 壽星血宴</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            margin: 0;
+            padding: 0;
+        }
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #000;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+        #app {
+            display: flex;
+            flex-direction: column;
+            width: 100vw;
+            height: 100vh;
+        }
+        /* 上半部：純淨遊戲畫面（不被手指擋住） */
+        #game-view {
+            position: relative;
+            flex: 1;
+            width: 100%;
+            background: #000;
+            overflow: hidden;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        /* HUD 狀態條 */
+        #hud {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            width: 280px;
+            max-width: 75vw;
+            color: #fff;
+            text-shadow: 2px 2px 4px #000;
+            pointer-events: none;
+            z-index: 10;
+        }
+        #status-text {
+            font-size: 16px;
+            font-weight: bold;
+            color: #ffeb3b;
+            margin-bottom: 6px;
+        }
+        .bar-container {
+            margin-bottom: 4px;
+        }
+        .bar-label {
+            font-size: 11px;
+            margin-bottom: 2px;
+        }
+        .progress-bg {
+            width: 100%;
+            height: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        #essence-bar {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, #ff1744, #ff5252);
+        }
+        #alert-bar {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, #ff9100, #d50000);
+        }
+        /* 下半部：掌機專用控制台面板 (高 220px) */
+        #control-panel {
+            position: relative;
+            width: 100%;
+            height: 220px;
+            background: linear-gradient(180deg, #181818, #0a0a0a);
+            border-top: 2px solid #2a2a2a;
+            display: flex;
+            touch-action: none;
+        }
+        /* 左半邊：自由滑動搖桿感應區 */
+        #touch-move-zone {
+            flex: 1;
+            height: 100%;
+            position: relative;
+            touch-action: none;
+        }
+        #dynamic-joystick {
+            position: absolute;
+            width: 110px;
+            height: 110px;
+            margin-left: -55px;
+            margin-top: -55px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.12);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            pointer-events: none;
+            display: none;
+        }
+        #joystick-knob {
+            position: absolute;
+            width: 46px;
+            height: 46px;
+            top: 32px;
+            left: 32px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.75);
+            box-shadow: 0 0 10px rgba(255,255,255,0.4);
+            pointer-events: none;
+        }
+        .zone-hint {
+            position: absolute;
+            bottom: 20px;
+            left: 25px;
+            font-size: 13px;
+            color: #555;
+            pointer-events: none;
+        }
+        /* 右半邊：專用按鈕區 */
+        #button-zone {
+            width: 180px;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 16px;
+            padding-right: 15px;
+        }
+        .mobile-btn {
+            width: 130px;
+            height: 65px;
+            border-radius: 32px;
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            color: #fff;
+            font-size: 19px;
+            font-weight: bold;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            touch-action: none;
+        }
+        #suck-btn {
+            background: linear-gradient(135deg, #d32f2f, #b71c1c);
+            box-shadow: 0 0 14px rgba(211, 47, 47, 0.6);
+        }
+        #suck-btn:active, #suck-btn.pressed {
+            background: linear-gradient(135deg, #ff1744, #d50000);
+            transform: scale(0.94);
+        }
+        #skill-btn {
+            background: linear-gradient(135deg, #37474f, #212121);
+        }
+        #skill-btn:active {
+            transform: scale(0.94);
+        }
+    </style>
+</head>
+<body>
+
+<div id="app">
+    <!-- 上方大地圖遊戲畫面 -->
+    <div id="game-view">
+        <canvas id="gameCanvas"></canvas>
+        <div id="hud">
+            <div id="status-text">目標：探索合照尋找壽星</div>
+            <div class="bar-container">
+                <div class="bar-label">壽星精華液</div>
+                <div class="progress-bg"><div id="essence-bar"></div></div>
+            </div>
+            <div class="bar-container">
+                <div class="bar-label">壽星警覺度</div>
+                <div class="progress-bg"><div id="alert-bar"></div></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 下方獨立手把控制台 -->
+    <div id="control-panel">
+        <div id="touch-move-zone">
+            <div class="zone-hint">滑動此處飛行</div>
+            <div id="dynamic-joystick">
+                <div id="joystick-knob"></div>
+            </div>
+        </div>
+        <div id="button-zone">
+            <div id="suck-btn" class="mobile-btn">💉 吸血</div>
+            <div id="skill-btn" class="mobile-btn">💨 忍術</div>
+        </div>
+    </div>
+</div>
+
+<script>
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+const gameView = document.getElementById("game-view");
+
+function resize() {
+    canvas.width = gameView.clientWidth;
+    canvas.height = gameView.clientHeight;
+}
+window.addEventListener("resize", resize);
+resize();
+
+// 圖片資源
+const assets = {
+    bg: new Image(),
+    fly1: new Image(),
+    fly2: new Image(),
+    dizzy: new Image()
+};
+assets.bg.src = "bg_level1.png";
+assets.fly1.src = "mosquito_fly_1.png";
+assets.fly2.src = "mosquito_fly_2.png";
+assets.dizzy.src = "mosquito_dizzy.png";
+
+let worldWidth = 1080;
+let worldHeight = 1920;
+
+assets.bg.onload = function() {
+    worldWidth = assets.bg.naturalWidth || 1080;
+    worldHeight = assets.bg.naturalHeight || 1920;
+    mosquito.x = worldWidth * 0.52;
+    mosquito.y = worldHeight * 0.75;
+};
+
+// 鏡頭與蚊子數值（速度微調為 360，操控更穩健精準）
+const camera = { x: 0, y: 0, zoom: 1.4 };
+
+const mosquito = {
+    x: 550,
+    y: 1200,
+    size: 105,
+    speed: 360,          // 減速至穩定的飛行速度
+    dashSpeed: 2100,
+    flipH: false,
+    frame: 0,
+    frameTimer: 0
+};
+
+let essence = 0;
+let alertVal = 0;
+let isSucking = false;
+let isDashing = false;
+let dashTime = 0;
+let skillCooldown = 0;
+let joyVector = { x: 0, y: 0 };
+
+function getAreas() {
+    return [
+        { type: "LEG", name: "壽星小腿", x: worldWidth * 0.46, y: worldHeight * 0.65, w: worldWidth * 0.12, h: worldHeight * 0.22 },
+        { type: "ARM", name: "壽星手臂", x: worldWidth * 0.56, y: worldHeight * 0.42, w: worldWidth * 0.12, h: worldHeight * 0.16 },
+        { type: "FACE", name: "壽星臉部", x: worldWidth * 0.48, y: worldHeight * 0.24, w: worldWidth * 0.11, h: worldHeight * 0.12 },
+        { type: "FAT_MAN", name: "胖子", x: worldWidth * 0.18, y: worldHeight * 0.32, w: worldWidth * 0.24, h: worldHeight * 0.52 }
+    ];
+}
+
+function getTargetArea() {
+    const areas = getAreas();
+    for (let a of areas) {
+        if (mosquito.x >= a.x && mosquito.x <= a.x + a.w &&
+            mosquito.y >= a.y && mosquito.y <= a.y + a.h) {
+            return a;
+        }
+    }
+    return null;
+}
+
+// 搖桿滑動控制
+const moveZone = document.getElementById("touch-move-zone");
+const dynamicJoy = document.getElementById("dynamic-joystick");
+const joyKnob = document.getElementById("joystick-knob");
+let joyActive = false;
+let joyOrigin = { x: 0, y: 0 };
+let currentTouchId = null;
+
+function onJoyStart(clientX, clientY, touchId = null) {
+    joyActive = true;
+    currentTouchId = touchId;
+    const rect = moveZone.getBoundingClientRect();
+    const relX = clientX - rect.left;
+    const relY = clientY - rect.top;
+    joyOrigin = { x: relX, y: relY };
+    dynamicJoy.style.left = relX + "px";
+    dynamicJoy.style.top = relY + "px";
+    dynamicJoy.style.display = "block";
+    joyKnob.style.transform = "translate(0px, 0px)";
+    joyVector = { x: 0, y: 0 };
+}
+
+function onJoyMove(clientX, clientY) {
+    if (!joyActive) return;
+    const rect = moveZone.getBoundingClientRect();
+    const relX = clientX - rect.left;
+    const relY = clientY - rect.top;
+    let dx = relX - joyOrigin.x;
+    let dy = relY - joyOrigin.y;
+    const dist = Math.hypot(dx, dy);
+    const maxRadius = 45;
+    if (dist > maxRadius) {
+        dx = (dx / dist) * maxRadius;
+        dy = (dy / dist) * maxRadius;
+    }
+    joyKnob.style.transform = `translate(${dx}px, ${dy}px)`;
+    joyVector = { x: dx / maxRadius, y: dy / maxRadius };
+}
+
+function onJoyEnd() {
+    joyActive = false;
+    currentTouchId = null;
+    dynamicJoy.style.display = "none";
+    joyKnob.style.transform = "translate(0px, 0px)";
+    joyVector = { x: 0, y: 0 };
+}
+
+moveZone.addEventListener("touchstart", (e) => {
+    e.preventDefault();
+    if (joyActive) return;
+    const t = e.changedTouches[0];
+    onJoyStart(t.clientX, t.clientY, t.identifier);
+});
+window.addEventListener("touchmove", (e) => {
+    if (!joyActive) return;
+    for (let t of e.touches) {
+        if (t.identifier === currentTouchId) {
+            onJoyMove(t.clientX, t.clientY);
+            break;
+        }
+    }
+});
+window.addEventListener("touchend", (e) => {
+    if (!joyActive) return;
+    for (let t of e.changedTouches) {
+        if (t.identifier === currentTouchId) {
+            onJoyEnd();
+            break;
+        }
+    }
+});
+
+// 電腦滑鼠輔助
+moveZone.addEventListener("mousedown", (e) => onJoyStart(e.clientX, e.clientY));
+window.addEventListener("mousemove", (e) => { if (joyActive && currentTouchId === null) onJoyMove(e.clientX, e.clientY); });
+window.addEventListener("mouseup", (e) => { if (joyActive && currentTouchId === null) onJoyEnd(); });
+
+// 按鈕控制
+const suckBtn = document.getElementById("suck-btn");
+const skillBtn = document.getElementById("skill-btn");
+
+function startSuck() { isSucking = true; suckBtn.classList.add("pressed"); }
+function stopSuck() { isSucking = false; suckBtn.classList.remove("pressed"); }
+
+suckBtn.addEventListener("mousedown", startSuck);
+window.addEventListener("mouseup", stopSuck);
+suckBtn.addEventListener("touchstart", (e) => { e.preventDefault(); startSuck(); });
+window.addEventListener("touchend", stopSuck);
+
+skillBtn.addEventListener("click", () => {
+    if (skillCooldown <= 0 && !isDashing) {
+        isDashing = true;
+        dashTime = 0.16;
+        skillCooldown = 1.5;
+        stopSuck();
+    }
+});
+
+// 主循環
+let lastTime = performance.now();
+let suckTick = 0;
+
+function gameLoop(now) {
+    const dt = (now - lastTime) / 1000;
+    lastTime = now;
+
+    if (skillCooldown > 0) {
+        skillCooldown -= dt;
+        skillBtn.innerText = skillCooldown > 0 ? skillCooldown.toFixed(1) : "💨 忍術";
+        skillBtn.style.opacity = skillCooldown > 0 ? "0.6" : "1";
+    }
+
+    if (isDashing) {
+        dashTime -= dt;
+        mosquito.y -= mosquito.dashSpeed * dt;
+        if (dashTime <= 0) isDashing = false;
+    } else {
+        if (joyVector.x !== 0 || joyVector.y !== 0) {
+            mosquito.x += joyVector.x * mosquito.speed * dt;
+            mosquito.y += joyVector.y * mosquito.speed * dt;
+            mosquito.flipH = joyVector.x > 0;
+            stopSuck();
+        }
+    }
+
+    mosquito.x = Math.max(60, Math.min(worldWidth - 60, mosquito.x));
+    mosquito.y = Math.max(60, Math.min(worldHeight - 60, mosquito.y));
+
+    // 鏡頭特寫平滑跟隨
+    const targetCamX = mosquito.x - (canvas.width / 2) / camera.zoom;
+    const targetCamY = mosquito.y - (canvas.height / 2) / camera.zoom;
+    camera.x += (targetCamX - camera.x) * 0.12;
+    camera.y += (targetCamY - camera.y) * 0.12;
+
+    mosquito.frameTimer += dt;
+    if (mosquito.frameTimer > 0.09) {
+        mosquito.frame = mosquito.frame === 0 ? 1 : 0;
+        mosquito.frameTimer = 0;
+    }
+
+    const currentTarget = getTargetArea();
+    const statusText = document.getElementById("status-text");
+
+    if (isSucking && currentTarget) {
+        suckTick += dt * 18;
+        if (currentTarget.type === "FAT_MAN") {
+            essence = Math.max(0, essence - (essence * 0.5 + 20) * dt);
+            alertVal = Math.min(100, alertVal + 65 * dt);
+            statusText.innerText = "🌀 嘔！吸到胖子毒血！精華暴跌！";
+            statusText.style.color = "#00e676";
+        } else {
+            let gain = currentTarget.type === "FACE" ? 36 : (currentTarget.type === "ARM" ? 22 : 14);
+            let alertSpeed = currentTarget.type === "FACE" ? 42 : (currentTarget.type === "ARM" ? 22 : 12);
+            essence = Math.min(100, essence + gain * dt);
+            alertVal = Math.min(100, alertVal + alertSpeed * dt);
+            statusText.innerText = `🩸 正在汲取【${currentTarget.name}】！`;
+            statusText.style.color = "#ff1744";
+        }
+    } else {
+        alertVal = Math.max(0, alertVal - 12 * dt);
+        if (currentTarget) {
+            statusText.innerText = currentTarget.type === "FAT_MAN" ? "⚠️ 鎖定到胖子！別吸！" : `🟢 已就位：${currentTarget.name} (按住吸血)`;
+            statusText.style.color = currentTarget.type === "FAT_MAN" ? "#ff9100" : "#76ff03";
+        } else {
+            statusText.innerText = "目標：探索合照尋找壽星";
+            statusText.style.color = "#ffeb3b";
+        }
+    }
+
+    document.getElementById("essence-bar").style.width = essence + "%";
+    document.getElementById("alert-bar").style.width = alertVal + "%";
+
+    render(currentTarget);
+    requestAnimationFrame(gameLoop);
+}
+
+function render(currentTarget) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    ctx.save();
+    ctx.scale(camera.zoom, camera.zoom);
+    ctx.translate(-camera.x, -camera.y);
+
+    if (assets.bg.complete) {
+        ctx.drawImage(assets.bg, 0, 0, worldWidth, worldHeight);
+    } else {
+        ctx.fillStyle = "#222";
+        ctx.fillRect(0, 0, worldWidth, worldHeight);
+    }
+
+    // 精準輸送流特效
+    if (isSucking && currentTarget) {
+        const mouthX = mosquito.x;
+        const mouthY = mosquito.y + 35;
+        const skinX = mosquito.x;
+        const skinY = mosquito.y + 75;
+        const isRed = currentTarget.type !== "FAT_MAN";
+
+        ctx.beginPath();
+        ctx.arc(skinX, skinY, 18, 0, Math.PI * 2);
+        ctx.fillStyle = isRed ? "rgba(255, 23, 68, 0.45)" : "rgba(0, 230, 118, 0.45)";
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.moveTo(skinX, skinY);
+        ctx.lineTo(mouthX, mouthY);
+        ctx.lineWidth = 10 + Math.sin(suckTick) * 2;
+        ctx.strokeStyle = isRed ? "rgba(255, 23, 68, 0.9)" : "rgba(0, 230, 118, 0.9)";
+        ctx.stroke();
+
+        for (let i = 0; i < 3; i++) {
+            let t = ((suckTick * 0.12) + i * 0.33) % 1;
+            let px = skinX + (mouthX - skinX) * t;
+            let py = skinY + (mouthY - skinY) * t;
+            ctx.beginPath();
+            ctx.arc(px, py, 6, 0, Math.PI * 2);
+            ctx.fillStyle = "#fff";
+            ctx.fill();
+        }
+    }
+
+    // 蚊子本體
+    ctx.save();
+    ctx.translate(mosquito.x, mosquito.y);
+    if (mosquito.flipH) ctx.scale(-1, 1);
+
+    let currentImg = assets.fly1;
+    if (isSucking && currentTarget && currentTarget.type === "FAT_MAN") {
+        currentImg = assets.dizzy.complete ? assets.dizzy : assets.fly1;
+        ctx.translate((Math.random() - 0.5) * 8, (Math.random() - 0.5) * 8);
+    } else {
+        currentImg = mosquito.frame === 0 ? assets.fly1 : assets.fly2;
+    }
+
+    if (currentImg.complete) {
+        ctx.drawImage(currentImg, -mosquito.size / 2, -mosquito.size / 2, mosquito.size, mosquito.size);
+    }
+    ctx.restore();
+
+    ctx.restore();
+}
+
+requestAnimationFrame(gameLoop);
+</script>
+</body>
+</html>
