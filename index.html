@@ -36,7 +36,7 @@
             position: absolute;
             top: env(safe-area-inset-top, 15px);
             left: 20px;
-            width: 280px;
+            width: 290px;
             max-width: 65vw;
             color: #fff;
             text-shadow: 2px 2px 4px #000;
@@ -44,7 +44,7 @@
             z-index: 30;
         }
         #status-text {
-            font-size: 16px;
+            font-size: 15px;
             font-weight: bold;
             color: #ffeb3b;
             margin-bottom: 6px;
@@ -70,6 +70,12 @@
             width: 0%;
             height: 100%;
             background: linear-gradient(90deg, #ff1744, #ff5252);
+        }
+        #health-bar {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, #43a047, #76ff03);
+            transition: width 0.1s ease-out;
         }
         #alert-bar {
             width: 0%;
@@ -100,7 +106,6 @@
             pointer-events: none;
             display: none;
             z-index: 15;
-            transition: opacity 0.15s ease-out;
         }
         #arena-knob {
             position: absolute;
@@ -139,7 +144,7 @@
             cursor: pointer;
             backdrop-filter: blur(4px);
             touch-action: none;
-            transition: transform 0.08s ease, filter 0.1s ease;
+            transition: transform 0.08s ease;
         }
         #suck-btn {
             background: radial-gradient(circle, rgba(229, 57, 53, 0.8) 0%, rgba(183, 28, 28, 0.8) 100%);
@@ -148,7 +153,6 @@
         }
         #suck-btn:active, #suck-btn.pressed {
             transform: scale(0.9);
-            filter: brightness(1.2);
             background: radial-gradient(circle, rgba(255, 23, 68, 0.95) 0%, rgba(213, 0, 0, 0.95) 100%);
         }
         #skill-btn {
@@ -178,7 +182,11 @@
             <div class="progress-bg"><div id="essence-bar"></div></div>
         </div>
         <div class="bar-container">
-            <div class="bar-label">壽星警覺度</div>
+            <div class="bar-label">蚊子生命值</div>
+            <div class="progress-bg"><div id="health-bar"></div></div>
+        </div>
+        <div class="bar-container">
+            <div class="bar-label">現場警覺度</div>
             <div class="progress-bg"><div id="alert-bar"></div></div>
         </div>
     </div>
@@ -200,12 +208,11 @@ function resize() {
 window.addEventListener("resize", resize);
 resize();
 
-// 載入包含吸血針筒動作的圖片資源
 const assets = {
     bg: new Image(),
     fly1: new Image(),
     fly2: new Image(),
-    suck: new Image(),   // 常規吸血持針圖檔
+    suck: new Image(),
     dizzy: new Image()
 };
 assets.bg.src = "bg_level1.png";
@@ -220,6 +227,7 @@ let worldHeight = 1920;
 assets.bg.onload = function() {
     worldWidth = assets.bg.naturalWidth || 1080;
     worldHeight = assets.bg.naturalHeight || 1920;
+    // 預設誕生在壽星小腿附近
     mosquito.x = worldWidth * 0.52;
     mosquito.y = worldHeight * 0.74;
 };
@@ -229,7 +237,7 @@ const camera = { x: 0, y: 0, zoom: 3.8 };
 const mosquito = {
     x: 550,
     y: 1300,
-    size: 52,            // 針筒姿態略微放大顯出氣勢
+    size: 48,
     speed: 280,
     dashSpeed: 1600,
     facingRight: true,
@@ -237,37 +245,56 @@ const mosquito = {
     frameTimer: 0
 };
 
-let essence = 0;
-let alertVal = 0;
+// 數值系統
+let essence = 0;      // 壽星精華液 (0 ~ 100)
+let health = 100;     // 蚊子生命值 (0 ~ 100)
+let alertVal = 0;     // 警覺度 (0 ~ 100)
+
 let isSucking = false;
 let isDashing = false;
 let dashTime = 0;
 let skillCooldown = 0;
 let joyVector = { x: 0, y: 0 };
 
-// 噴濺血珠粒子陣列
 let bloodParticles = [];
 
-function getAreas() {
+// 精準定義合照中四個人的人體皮膚分區 (相對於世界地圖像素寬高)
+function getCharacterAreas() {
     return [
-        { type: "LEG", name: "壽星小腿", x: worldWidth * 0.46, y: worldHeight * 0.65, w: worldWidth * 0.12, h: worldHeight * 0.22 },
-        { type: "ARM", name: "壽星手臂", x: worldWidth * 0.56, y: worldHeight * 0.42, w: worldWidth * 0.12, h: worldHeight * 0.16 },
-        { type: "FACE", name: "壽星臉部", x: worldWidth * 0.48, y: worldHeight * 0.24, w: worldWidth * 0.11, h: worldHeight * 0.12 },
-        { type: "FAT_MAN", name: "胖子", x: worldWidth * 0.18, y: worldHeight * 0.32, w: worldWidth * 0.24, h: worldHeight * 0.52 }
+        // 1. 壽星（情況 1：右二男子，黑T比雙讚）
+        { category: "BIRTHDAY_BOY", name: "壽星小腿", x: worldWidth * 0.46, y: worldHeight * 0.65, w: worldWidth * 0.11, h: worldHeight * 0.22 },
+        { category: "BIRTHDAY_BOY", name: "壽星手臂", x: worldWidth * 0.55, y: worldHeight * 0.40, w: worldWidth * 0.11, h: worldHeight * 0.16 },
+        { category: "BIRTHDAY_BOY", name: "壽星臉部", x: worldWidth * 0.48, y: worldHeight * 0.22, w: worldWidth * 0.10, h: worldHeight * 0.13 },
+
+        // 2. 胖子（情況 2：左二男子，黑背心戴眼鏡）
+        { category: "FAT_MAN", name: "胖子手臂與身體", x: worldWidth * 0.24, y: worldHeight * 0.32, w: worldWidth * 0.16, h: worldHeight * 0.28 },
+        { category: "FAT_MAN", name: "胖子小腿", x: worldWidth * 0.23, y: worldHeight * 0.62, w: worldWidth * 0.14, h: worldHeight * 0.24 },
+
+        // 3. 其他朋友 A（情況 3：左一白球衣朋友）
+        { category: "OTHER_FRIEND", name: "白衣朋友手臂", x: worldWidth * 0.08, y: worldHeight * 0.38, w: worldWidth * 0.14, h: worldHeight * 0.20 },
+        { category: "OTHER_FRIEND", name: "白衣朋友小腿", x: worldWidth * 0.10, y: worldHeight * 0.64, w: worldWidth * 0.12, h: worldHeight * 0.24 },
+
+        // 3. 其他朋友 B（情況 3：右一灰衣朋友）
+        { category: "OTHER_FRIEND", name: "灰衣朋友臉部與頸部", x: worldWidth * 0.68, y: worldHeight * 0.22, w: worldWidth * 0.10, h: worldHeight * 0.13 },
+        { category: "OTHER_FRIEND", name: "灰衣朋友手臂", x: worldWidth * 0.67, y: worldHeight * 0.38, w: worldWidth * 0.11, h: worldHeight * 0.20 },
+        { category: "OTHER_FRIEND", name: "灰衣朋友腳踝", x: worldWidth * 0.70, y: worldHeight * 0.78, w: worldWidth * 0.09, h: worldHeight * 0.12 }
     ];
 }
 
-function getTargetArea() {
-    const areas = getAreas();
+// 判定當前蚊子停靠處
+function getCurrentTarget() {
+    const areas = getCharacterAreas();
     for (let a of areas) {
         if (mosquito.x >= a.x && mosquito.x <= a.x + a.w &&
             mosquito.y >= a.y && mosquito.y <= a.y + a.h) {
             return a;
         }
     }
+    // 不在任何皮膚上（情況 4：背景/衣物）
     return null;
 }
 
+// 虛擬搖桿
 const leftZone = document.getElementById("touch-left-zone");
 const arenaJoy = document.getElementById("arena-joystick");
 const arenaKnob = document.getElementById("arena-knob");
@@ -337,6 +364,7 @@ leftZone.addEventListener("mousedown", (e) => onJoyStart(e.clientX, e.clientY));
 window.addEventListener("mousemove", (e) => { if (joyActive && currentTouchId === null) onJoyMove(e.clientX, e.clientY); });
 window.addEventListener("mouseup", (e) => { if (joyActive && currentTouchId === null) onJoyEnd(); });
 
+// 按鈕
 const suckBtn = document.getElementById("suck-btn");
 const skillBtn = document.getElementById("skill-btn");
 
@@ -391,7 +419,7 @@ function gameLoop(now) {
     mosquito.x = Math.max(30, Math.min(worldWidth - 30, mosquito.x));
     mosquito.y = Math.max(30, Math.min(worldHeight - 30, mosquito.y));
 
-    // 鏡頭跟隨
+    // 鏡頭鎖定
     const targetCamX = mosquito.x - (canvas.width / 2) / camera.zoom;
     const targetCamY = mosquito.y - (canvas.height / 2) / camera.zoom;
     camera.x += (targetCamX - camera.x) * 0.14;
@@ -403,64 +431,92 @@ function gameLoop(now) {
         mosquito.frameTimer = 0;
     }
 
-    const currentTarget = getTargetArea();
+    // 核心：四種吸血情況判定
+    const currentTarget = getCurrentTarget();
     const statusText = document.getElementById("status-text");
 
-    if (isSucking && currentTarget) {
+    if (isSucking) {
         suckTick += dt * 18;
-        if (currentTarget.type === "FAT_MAN") {
-            essence = Math.max(0, essence - (essence * 0.5 + 20) * dt);
-            alertVal = Math.min(100, alertVal + 65 * dt);
-            statusText.innerText = "🌀 嘔！吸到胖子毒血！精華暴跌！";
-            statusText.style.color = "#00e676";
-        } else {
-            let gain = currentTarget.type === "FACE" ? 36 : (currentTarget.type === "ARM" ? 22 : 14);
-            let alertSpeed = currentTarget.type === "FACE" ? 42 : (currentTarget.type === "ARM" ? 22 : 12);
-            essence = Math.min(100, essence + gain * dt);
-            alertVal = Math.min(100, alertVal + alertSpeed * dt);
-            statusText.innerText = `🩸 正在汲取【${currentTarget.name}】！`;
+
+        if (!currentTarget) {
+            // 情況 4：咬在非皮膚部位 (背景、衣物) -> 無變化
+            statusText.innerText = "❌ 咬到衣服或背景！無法吸血";
+            statusText.style.color = "#bbb";
+            alertVal = Math.max(0, alertVal - 10 * dt);
+        } else if (currentTarget.category === "BIRTHDAY_BOY") {
+            // 情況 1：吸到壽星 -> 增加精華液與警覺度
+            essence = Math.min(100, essence + 22 * dt);
+            alertVal = Math.min(100, alertVal + 24 * dt);
+            statusText.innerText = `🩸 正在汲取【${currentTarget.name}】純度精華！`;
             statusText.style.color = "#ff1744";
 
-            // 生成噴濺鮮血粒子
+            // 生成鮮血粒子
             if (Math.random() < 0.6) {
-                const needleX = mosquito.x + (mosquito.facingRight ? 16 : -16);
-                const needleY = mosquito.y + 24;
-                bloodParticles.push({
-                    x: needleX,
-                    y: needleY,
-                    vx: (Math.random() - 0.5) * 60,
-                    vy: -Math.random() * 80 - 30,
-                    radius: Math.random() * 2.5 + 1.5,
-                    alpha: 1.0
-                });
+                _spawnBlood(mosquito.facingRight ? 16 : -16, 24, true);
+            }
+        } else if (currentTarget.category === "FAT_MAN") {
+            // 情況 2：吸到胖子 -> 扣除生命值，陷入中毒暈眩
+            health = Math.max(0, health - 35 * dt);
+            alertVal = Math.min(100, alertVal + 60 * dt);
+            statusText.innerText = "🌀 嘔！吸到胖子油膩毒血！生命受損！";
+            statusText.style.color = "#00e676";
+        } else if (currentTarget.category === "OTHER_FRIEND") {
+            // 情況 3：吸到其他兩位朋友 -> 有吸血動作與特效，但精華液不變 (0%)
+            alertVal = Math.min(100, alertVal + 18 * dt);
+            statusText.innerText = `🩸 正在叮咬【${currentTarget.name}】... 但精華無效！`;
+            statusText.style.color = "#ff9100";
+
+            if (Math.random() < 0.6) {
+                _spawnBlood(mosquito.facingRight ? 16 : -16, 24, true);
             }
         }
     } else {
         alertVal = Math.max(0, alertVal - 12 * dt);
         if (currentTarget) {
-            statusText.innerText = currentTarget.type === "FAT_MAN" ? "⚠️ 鎖定到胖子！別吸！" : `🟢 已就位：${currentTarget.name} (按住吸血)`;
-            statusText.style.color = currentTarget.type === "FAT_MAN" ? "#ff9100" : "#76ff03";
+            if (currentTarget.category === "BIRTHDAY_BOY") {
+                statusText.innerText = `🟢 鎖定壽星部位：${currentTarget.name} (按住吸血)`;
+                statusText.style.color = "#76ff03";
+            } else if (currentTarget.category === "FAT_MAN") {
+                statusText.innerText = "⚠️ 這是路人胖子！(吸了會扣命中毒)";
+                statusText.style.color = "#ff5252";
+            } else {
+                statusText.innerText = `⚪ 發現目標：${currentTarget.name} (按住吸血)`;
+                statusText.style.color = "#fff";
+            }
         } else {
             statusText.innerText = "目標：探索合照尋找壽星";
             statusText.style.color = "#ffeb3b";
         }
     }
 
-    // 更新血滴粒子生命週期
+    // 更新血滴物理軌跡
     for (let i = bloodParticles.length - 1; i >= 0; i--) {
         let p = bloodParticles[i];
         p.x += p.vx * dt;
         p.y += p.vy * dt;
-        p.vy += 120 * dt; // 重力下墜
+        p.vy += 120 * dt;
         p.alpha -= 2.2 * dt;
         if (p.alpha <= 0) bloodParticles.splice(i, 1);
     }
 
     document.getElementById("essence-bar").style.width = essence + "%";
+    document.getElementById("health-bar").style.width = health + "%";
     document.getElementById("alert-bar").style.width = alertVal + "%";
 
     render(currentTarget);
     requestAnimationFrame(gameLoop);
+}
+
+function _spawnBlood(offsetX, offsetY, isRed) {
+    bloodParticles.push({
+        x: mosquito.x + offsetX,
+        y: mosquito.y + offsetY,
+        vx: (Math.random() - 0.5) * 60,
+        vy: -Math.random() * 80 - 30,
+        radius: Math.random() * 2.5 + 1.5,
+        alpha: 1.0,
+        isRed: isRed
+    });
 }
 
 function render(currentTarget) {
@@ -477,21 +533,19 @@ function render(currentTarget) {
         ctx.fillRect(0, 0, worldWidth, worldHeight);
     }
 
-    // 針頭動態座標（相對於蚊子錨點）
-    const needleOffsetX = mosquito.facingRight ? 16 : -16;
-    const needleTipX = mosquito.x + needleOffsetX;
+    const needleTipX = mosquito.x + (mosquito.facingRight ? 16 : -16);
     const needleTipY = mosquito.y + 24;
 
-    // --- 吸血動態特效 ---
+    // --- 繪製吸血特效 (只有情況 1、2、3 有特效，情況 4 什麼都沒有) ---
     if (isSucking && currentTarget) {
-        if (currentTarget.type === "FAT_MAN") {
-            // 胖子毒血綠黑濁流
+        if (currentTarget.category === "FAT_MAN") {
+            // 情況 2：胖子暗綠毒光圈
             ctx.beginPath();
             ctx.arc(needleTipX, needleTipY, 8, 0, Math.PI * 2);
             ctx.fillStyle = "rgba(0, 230, 118, 0.4)";
             ctx.fill();
         } else {
-            // 壽星鮮血脈動紅光圈（吸入震波）
+            // 情況 1 與 情況 3：真實鮮紅噴灑特效
             const pulseRadius = 7 + Math.sin(suckTick * 1.5) * 2.5;
             ctx.beginPath();
             ctx.arc(needleTipX, needleTipY, pulseRadius + 5, 0, Math.PI * 2);
@@ -503,7 +557,7 @@ function render(currentTarget) {
             ctx.fillStyle = "rgba(255, 23, 68, 0.85)";
             ctx.fill();
 
-            // 針管內部抽血流動高光
+            // 針管抽取光柱
             const barrelTopX = mosquito.x + (mosquito.facingRight ? 12 : -12);
             const barrelTopY = mosquito.y - 4;
             ctx.beginPath();
@@ -513,7 +567,7 @@ function render(currentTarget) {
             ctx.strokeStyle = "rgba(255, 60, 60, 0.9)";
             ctx.stroke();
 
-            // 針筒內部往上湧升的微型氣泡
+            // 上浮氣泡
             for (let i = 0; i < 3; i++) {
                 let t = ((suckTick * 0.15) + i * 0.33) % 1;
                 let bx = needleTipX + (barrelTopX - needleTipX) * t;
@@ -524,7 +578,7 @@ function render(currentTarget) {
                 ctx.fill();
             }
 
-            // 繪製噴濺出的鮮血粒子
+            // 噴濺血粒子
             for (let p of bloodParticles) {
                 ctx.beginPath();
                 ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
@@ -538,7 +592,7 @@ function render(currentTarget) {
     ctx.save();
     ctx.translate(mosquito.x, mosquito.y);
     
-    // 朝向判定：面向右邊正向 (1, 1)，面向左邊水平鏡像翻轉 (-1, 1)
+    // 朝向判定
     if (mosquito.facingRight) {
         ctx.scale(1, 1);
     } else {
@@ -547,19 +601,19 @@ function render(currentTarget) {
 
     let currentImg = assets.fly1;
 
+    // 只有停靠在人體（情況 1、2、3）吸血時才換圖；情況 4 (咬在背景) 維持原樣飛行拍翅
     if (isSucking && currentTarget) {
-        if (currentTarget.type === "FAT_MAN") {
-            // 吸胖子切換蚊香眼表情圖
+        if (currentTarget.category === "FAT_MAN") {
+            // 情況 2：吸到胖子切換蚊香眼暈眩圖
             currentImg = assets.dizzy.complete ? assets.dizzy : assets.fly1;
             ctx.translate((Math.random() - 0.5) * 4, (Math.random() - 0.5) * 4);
         } else {
-            // 吸壽星換成這張「持針筒專用吸血圖」！
+            // 情況 1 與 情況 3：持針筒扎馬步專注吸血
             currentImg = assets.suck.complete ? assets.suck : assets.fly1;
-            // 伴隨汲取產生微幅上下抽動
             ctx.translate(0, Math.sin(suckTick * 2.0) * 1.2);
         }
     } else {
-        // 飛行狀態交替拍翅
+        // 常規飛行拍翅
         currentImg = mosquito.frame === 0 ? assets.fly1 : assets.fly2;
     }
 
