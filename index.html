@@ -19,18 +19,10 @@
             background-color: #000;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         }
-        #app {
-            display: flex;
-            flex-direction: column;
+        #game-container {
+            position: relative;
             width: 100vw;
             height: 100vh;
-        }
-        /* 上半部：純淨遊戲畫面（不被手指擋住） */
-        #game-view {
-            position: relative;
-            flex: 1;
-            width: 100%;
-            background: #000;
             overflow: hidden;
         }
         canvas {
@@ -38,23 +30,25 @@
             width: 100%;
             height: 100%;
         }
-        /* HUD 狀態條 */
+
+        /* 頂部 HUD (半透明懸浮) */
         #hud {
             position: absolute;
-            top: 15px;
-            left: 15px;
+            top: env(safe-area-inset-top, 15px);
+            left: 20px;
             width: 280px;
-            max-width: 75vw;
+            max-width: 65vw;
             color: #fff;
             text-shadow: 2px 2px 4px #000;
             pointer-events: none;
-            z-index: 10;
+            z-index: 30;
         }
         #status-text {
             font-size: 16px;
             font-weight: bold;
             color: #ffeb3b;
             margin-bottom: 6px;
+            white-space: nowrap;
         }
         .bar-container {
             margin-bottom: 4px;
@@ -62,12 +56,13 @@
         .bar-label {
             font-size: 11px;
             margin-bottom: 2px;
+            color: #ddd;
         }
         .progress-bg {
             width: 100%;
             height: 10px;
-            background: rgba(0, 0, 0, 0.7);
-            border: 1px solid rgba(255, 255, 255, 0.4);
+            background: rgba(0, 0, 0, 0.65);
+            border: 1px solid rgba(255, 255, 255, 0.35);
             border-radius: 5px;
             overflow: hidden;
         }
@@ -81,138 +76,132 @@
             height: 100%;
             background: linear-gradient(90deg, #ff9100, #d50000);
         }
-        /* 下半部：掌機專用控制台面板 (高 220px) */
-        #control-panel {
-            position: relative;
-            width: 100%;
-            height: 220px;
-            background: linear-gradient(180deg, #181818, #0a0a0a);
-            border-top: 2px solid #2a2a2a;
-            display: flex;
-            touch-action: none;
-        }
-        /* 左半邊：自由滑動搖桿感應區 */
-        #touch-move-zone {
-            flex: 1;
-            height: 100%;
-            position: relative;
-            touch-action: none;
-        }
-        #dynamic-joystick {
+
+        /* 左半邊傳說對決式動態觸控層 */
+        #touch-left-zone {
             position: absolute;
-            width: 110px;
-            height: 110px;
-            margin-left: -55px;
-            margin-top: -55px;
+            top: 0;
+            left: 0;
+            width: 55vw;
+            height: 100vh;
+            z-index: 10;
+            touch-action: none;
+        }
+        /* 傳說對決同款外底環 */
+        #arena-joystick {
+            position: absolute;
+            width: 140px;
+            height: 140px;
+            margin-left: -70px;
+            margin-top: -70px;
             border-radius: 50%;
-            background: rgba(255, 255, 255, 0.12);
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.08) 0%, rgba(0, 0, 0, 0.45) 80%);
             border: 2px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.6), inset 0 0 10px rgba(255, 255, 255, 0.1);
             pointer-events: none;
             display: none;
+            z-index: 15;
+            transition: opacity 0.15s ease-out;
         }
-        #joystick-knob {
+        /* 傳說對決同款中心拖曳舵 */
+        #arena-knob {
             position: absolute;
-            width: 46px;
-            height: 46px;
-            top: 32px;
-            left: 32px;
+            width: 56px;
+            height: 56px;
+            top: 42px;
+            left: 42px;
             border-radius: 50%;
-            background: rgba(255, 255, 255, 0.75);
-            box-shadow: 0 0 10px rgba(255,255,255,0.4);
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.9) 0%, rgba(200, 200, 200, 0.6) 100%);
+            border: 2px solid rgba(255, 255, 255, 0.8);
+            box-shadow: 0 0 12px rgba(255, 255, 255, 0.5);
             pointer-events: none;
         }
-        .zone-hint {
+
+        /* 右側動作按鈕 (半透明懸浮在遊戲畫面上) */
+        #action-container {
             position: absolute;
-            bottom: 20px;
-            left: 25px;
-            font-size: 13px;
-            color: #555;
-            pointer-events: none;
-        }
-        /* 右半邊：專用按鈕區 */
-        #button-zone {
-            width: 180px;
-            height: 100%;
+            right: 25px;
+            bottom: 35px;
             display: flex;
             flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            gap: 16px;
-            padding-right: 15px;
+            gap: 18px;
+            z-index: 25;
+            touch-action: none;
         }
-        .mobile-btn {
-            width: 130px;
-            height: 65px;
-            border-radius: 32px;
-            border: 2px solid rgba(255, 255, 255, 0.5);
+        .hud-btn {
+            width: 78px;
+            height: 78px;
+            border-radius: 50%;
             color: #fff;
-            font-size: 19px;
+            font-size: 16px;
             font-weight: bold;
             display: flex;
             justify-content: center;
             align-items: center;
             cursor: pointer;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            backdrop-filter: blur(4px);
             touch-action: none;
+            transition: transform 0.08s ease, filter 0.1s ease;
         }
         #suck-btn {
-            background: linear-gradient(135deg, #d32f2f, #b71c1c);
-            box-shadow: 0 0 14px rgba(211, 47, 47, 0.6);
+            background: radial-gradient(circle, rgba(229, 57, 53, 0.8) 0%, rgba(183, 28, 28, 0.8) 100%);
+            border: 2.5px solid rgba(255, 138, 128, 0.7);
+            box-shadow: 0 0 16px rgba(211, 47, 47, 0.6);
         }
         #suck-btn:active, #suck-btn.pressed {
-            background: linear-gradient(135deg, #ff1744, #d50000);
-            transform: scale(0.94);
+            transform: scale(0.9);
+            filter: brightness(1.2);
+            background: radial-gradient(circle, rgba(255, 23, 68, 0.95) 0%, rgba(213, 0, 0, 0.95) 100%);
         }
         #skill-btn {
-            background: linear-gradient(135deg, #37474f, #212121);
+            background: radial-gradient(circle, rgba(66, 66, 66, 0.75) 0%, rgba(33, 33, 33, 0.85) 100%);
+            border: 2.5px solid rgba(255, 255, 255, 0.4);
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.7);
         }
         #skill-btn:active {
-            transform: scale(0.94);
+            transform: scale(0.9);
         }
     </style>
 </head>
 <body>
 
-<div id="app">
-    <!-- 上方大地圖遊戲畫面 -->
-    <div id="game-view">
-        <canvas id="gameCanvas"></canvas>
-        <div id="hud">
-            <div id="status-text">目標：探索合照尋找壽星</div>
-            <div class="bar-container">
-                <div class="bar-label">壽星精華液</div>
-                <div class="progress-bg"><div id="essence-bar"></div></div>
-            </div>
-            <div class="bar-container">
-                <div class="bar-label">壽星警覺度</div>
-                <div class="progress-bg"><div id="alert-bar"></div></div>
-            </div>
+<div id="game-container">
+    <!-- 滿版大地圖畫布 -->
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- 傳說對決同款：左半邊任意點擊動態浮現輪盤 -->
+    <div id="touch-left-zone"></div>
+    <div id="arena-joystick">
+        <div id="arena-knob"></div>
+    </div>
+
+    <!-- 頂部懸浮 HUD -->
+    <div id="hud">
+        <div id="status-text">目標：探索合照尋找壽星</div>
+        <div class="bar-container">
+            <div class="bar-label">壽星精華液</div>
+            <div class="progress-bg"><div id="essence-bar"></div></div>
+        </div>
+        <div class="bar-container">
+            <div class="bar-label">壽星警覺度</div>
+            <div class="progress-bg"><div id="alert-bar"></div></div>
         </div>
     </div>
 
-    <!-- 下方獨立手把控制台 -->
-    <div id="control-panel">
-        <div id="touch-move-zone">
-            <div class="zone-hint">滑動此處飛行</div>
-            <div id="dynamic-joystick">
-                <div id="joystick-knob"></div>
-            </div>
-        </div>
-        <div id="button-zone">
-            <div id="suck-btn" class="mobile-btn">💉 吸血</div>
-            <div id="skill-btn" class="mobile-btn">💨 忍術</div>
-        </div>
+    <!-- 右側懸浮技能與吸血按鈕 -->
+    <div id="action-container">
+        <div id="suck-btn" class="hud-btn">💉 吸血</div>
+        <div id="skill-btn" class="hud-btn">💨 忍術</div>
     </div>
 </div>
 
 <script>
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
-const gameView = document.getElementById("game-view");
 
 function resize() {
-    canvas.width = gameView.clientWidth;
-    canvas.height = gameView.clientHeight;
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
 }
 window.addEventListener("resize", resize);
 resize();
@@ -235,18 +224,20 @@ let worldHeight = 1920;
 assets.bg.onload = function() {
     worldWidth = assets.bg.naturalWidth || 1080;
     worldHeight = assets.bg.naturalHeight || 1920;
+    // 預設將蚊子放置在壽星小腿附近的大地圖座標
     mosquito.x = worldWidth * 0.52;
-    mosquito.y = worldHeight * 0.75;
+    mosquito.y = worldHeight * 0.74;
 };
 
-// 鏡頭與蚊子數值（速度微調為 360，操控更穩健精準）
-const camera = { x: 0, y: 0, zoom: 1.4 };
+// 鏡頭與蚊子設定
+// zoom 拉大到 2.6：背景照片超級特寫放大，使人的腿看起來極其粗大，蚊子比例逼真！
+const camera = { x: 0, y: 0, zoom: 2.6 };
 
 const mosquito = {
     x: 550,
-    y: 1200,
-    size: 105,
-    speed: 360,          // 減速至穩定的飛行速度
+    y: 1300,
+    size: 95,            // 蚊子在螢幕上維持舒適清晰的手感尺寸
+    speed: 350,          // 平穩穩健的探索飛行速度
     dashSpeed: 2100,
     flipH: false,
     frame: 0,
@@ -261,6 +252,7 @@ let dashTime = 0;
 let skillCooldown = 0;
 let joyVector = { x: 0, y: 0 };
 
+// 大地圖部位判定區
 function getAreas() {
     return [
         { type: "LEG", name: "壽星小腿", x: worldWidth * 0.46, y: worldHeight * 0.65, w: worldWidth * 0.12, h: worldHeight * 0.22 },
@@ -281,10 +273,10 @@ function getTargetArea() {
     return null;
 }
 
-// 搖桿滑動控制
-const moveZone = document.getElementById("touch-move-zone");
-const dynamicJoy = document.getElementById("dynamic-joystick");
-const joyKnob = document.getElementById("joystick-knob");
+// --- 傳說對決同款：左半邊任意點擊動態浮現輪盤 ---
+const leftZone = document.getElementById("touch-left-zone");
+const arenaJoy = document.getElementById("arena-joystick");
+const arenaKnob = document.getElementById("arena-knob");
 let joyActive = false;
 let joyOrigin = { x: 0, y: 0 };
 let currentTouchId = null;
@@ -292,43 +284,37 @@ let currentTouchId = null;
 function onJoyStart(clientX, clientY, touchId = null) {
     joyActive = true;
     currentTouchId = touchId;
-    const rect = moveZone.getBoundingClientRect();
-    const relX = clientX - rect.left;
-    const relY = clientY - rect.top;
-    joyOrigin = { x: relX, y: relY };
-    dynamicJoy.style.left = relX + "px";
-    dynamicJoy.style.top = relY + "px";
-    dynamicJoy.style.display = "block";
-    joyKnob.style.transform = "translate(0px, 0px)";
+    joyOrigin = { x: clientX, y: clientY };
+    arenaJoy.style.left = clientX + "px";
+    arenaJoy.style.top = clientY + "px";
+    arenaJoy.style.display = "block";
+    arenaKnob.style.transform = "translate(0px, 0px)";
     joyVector = { x: 0, y: 0 };
 }
 
 function onJoyMove(clientX, clientY) {
     if (!joyActive) return;
-    const rect = moveZone.getBoundingClientRect();
-    const relX = clientX - rect.left;
-    const relY = clientY - rect.top;
-    let dx = relX - joyOrigin.x;
-    let dy = relY - joyOrigin.y;
+    let dx = clientX - joyOrigin.x;
+    let dy = clientY - joyOrigin.y;
     const dist = Math.hypot(dx, dy);
-    const maxRadius = 45;
+    const maxRadius = 55;
     if (dist > maxRadius) {
         dx = (dx / dist) * maxRadius;
         dy = (dy / dist) * maxRadius;
     }
-    joyKnob.style.transform = `translate(${dx}px, ${dy}px)`;
+    arenaKnob.style.transform = `translate(${dx}px, ${dy}px)`;
     joyVector = { x: dx / maxRadius, y: dy / maxRadius };
 }
 
 function onJoyEnd() {
     joyActive = false;
     currentTouchId = null;
-    dynamicJoy.style.display = "none";
-    joyKnob.style.transform = "translate(0px, 0px)";
+    arenaJoy.style.display = "none";
+    arenaKnob.style.transform = "translate(0px, 0px)";
     joyVector = { x: 0, y: 0 };
 }
 
-moveZone.addEventListener("touchstart", (e) => {
+leftZone.addEventListener("touchstart", (e) => {
     e.preventDefault();
     if (joyActive) return;
     const t = e.changedTouches[0];
@@ -353,12 +339,12 @@ window.addEventListener("touchend", (e) => {
     }
 });
 
-// 電腦滑鼠輔助
-moveZone.addEventListener("mousedown", (e) => onJoyStart(e.clientX, e.clientY));
+// 電腦滑鼠操作支援
+leftZone.addEventListener("mousedown", (e) => onJoyStart(e.clientX, e.clientY));
 window.addEventListener("mousemove", (e) => { if (joyActive && currentTouchId === null) onJoyMove(e.clientX, e.clientY); });
 window.addEventListener("mouseup", (e) => { if (joyActive && currentTouchId === null) onJoyEnd(); });
 
-// 按鈕控制
+// 按鈕事件
 const suckBtn = document.getElementById("suck-btn");
 const skillBtn = document.getElementById("skill-btn");
 
@@ -379,7 +365,7 @@ skillBtn.addEventListener("click", () => {
     }
 });
 
-// 主循環
+// 主遊戲循環
 let lastTime = performance.now();
 let suckTick = 0;
 
@@ -409,11 +395,11 @@ function gameLoop(now) {
     mosquito.x = Math.max(60, Math.min(worldWidth - 60, mosquito.x));
     mosquito.y = Math.max(60, Math.min(worldHeight - 60, mosquito.y));
 
-    // 鏡頭特寫平滑跟隨
+    // 鏡頭鎖定特寫平滑跟隨
     const targetCamX = mosquito.x - (canvas.width / 2) / camera.zoom;
     const targetCamY = mosquito.y - (canvas.height / 2) / camera.zoom;
-    camera.x += (targetCamX - camera.x) * 0.12;
-    camera.y += (targetCamY - camera.y) * 0.12;
+    camera.x += (targetCamX - camera.x) * 0.14;
+    camera.y += (targetCamY - camera.y) * 0.14;
 
     mosquito.frameTimer += dt;
     if (mosquito.frameTimer > 0.09) {
@@ -464,6 +450,7 @@ function render(currentTarget) {
     ctx.scale(camera.zoom, camera.zoom);
     ctx.translate(-camera.x, -camera.y);
 
+    // 1. 繪製特寫大地圖合照
     if (assets.bg.complete) {
         ctx.drawImage(assets.bg, 0, 0, worldWidth, worldHeight);
     } else {
@@ -471,23 +458,23 @@ function render(currentTarget) {
         ctx.fillRect(0, 0, worldWidth, worldHeight);
     }
 
-    // 精準輸送流特效
+    // 2. 吸血流動光柱特效
     if (isSucking && currentTarget) {
         const mouthX = mosquito.x;
-        const mouthY = mosquito.y + 35;
+        const mouthY = mosquito.y + 32;
         const skinX = mosquito.x;
-        const skinY = mosquito.y + 75;
+        const skinY = mosquito.y + 68;
         const isRed = currentTarget.type !== "FAT_MAN";
 
         ctx.beginPath();
-        ctx.arc(skinX, skinY, 18, 0, Math.PI * 2);
+        ctx.arc(skinX, skinY, 16, 0, Math.PI * 2);
         ctx.fillStyle = isRed ? "rgba(255, 23, 68, 0.45)" : "rgba(0, 230, 118, 0.45)";
         ctx.fill();
 
         ctx.beginPath();
         ctx.moveTo(skinX, skinY);
         ctx.lineTo(mouthX, mouthY);
-        ctx.lineWidth = 10 + Math.sin(suckTick) * 2;
+        ctx.lineWidth = 8 + Math.sin(suckTick) * 2;
         ctx.strokeStyle = isRed ? "rgba(255, 23, 68, 0.9)" : "rgba(0, 230, 118, 0.9)";
         ctx.stroke();
 
@@ -496,13 +483,13 @@ function render(currentTarget) {
             let px = skinX + (mouthX - skinX) * t;
             let py = skinY + (mouthY - skinY) * t;
             ctx.beginPath();
-            ctx.arc(px, py, 6, 0, Math.PI * 2);
+            ctx.arc(px, py, 4.5, 0, Math.PI * 2);
             ctx.fillStyle = "#fff";
             ctx.fill();
         }
     }
 
-    // 蚊子本體
+    // 3. 繪製蚊子
     ctx.save();
     ctx.translate(mosquito.x, mosquito.y);
     if (mosquito.flipH) ctx.scale(-1, 1);
@@ -510,7 +497,7 @@ function render(currentTarget) {
     let currentImg = assets.fly1;
     if (isSucking && currentTarget && currentTarget.type === "FAT_MAN") {
         currentImg = assets.dizzy.complete ? assets.dizzy : assets.fly1;
-        ctx.translate((Math.random() - 0.5) * 8, (Math.random() - 0.5) * 8);
+        ctx.translate((Math.random() - 0.5) * 6, (Math.random() - 0.5) * 6);
     } else {
         currentImg = mosquito.frame === 0 ? assets.fly1 : assets.fly2;
     }
