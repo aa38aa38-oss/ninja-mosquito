@@ -486,13 +486,13 @@ const mosquito = {
 
 let essence = 0;
 let health = 100;
-let alertVal = 0; // 暴露值
+let alertVal = 0;
 
 let isSucking = false;
 let blinkCooldown = 0;
 let hasLearnedBlink = false;
-let hasPromptedAlert10 = false; // 是否已彈出暴露值10%提示
-let isStageComplete = false;     // 是否已吸滿100%過關
+let hasPromptedAlert10 = false;
+let isStageComplete = false;
 let joyVector = { x: 0, y: 0 };
 
 let bloodParticles = [];
@@ -526,7 +526,8 @@ const dialogContent = document.getElementById("dialog-content");
 const dialogBtn1 = document.getElementById("dialog-btn-1");
 const dialogBtn2 = document.getElementById("dialog-btn-2");
 
-dialogBtn1.addEventListener("click", () => {
+function handleBtn1Click(e) {
+    if (e && e.preventDefault) e.preventDefault();
     if (dialogStep === 1) {
         dialogStep = 2;
         dialogTitle.innerText = "重要警告";
@@ -543,7 +544,6 @@ dialogBtn1.addEventListener("click", () => {
         dialogModal.style.display = "none";
         isPausedForDialog = false;
     } else if (dialogStep === "WIN_CHOICE") {
-        // 選擇「要」
         dialogStep = "FINAL_RESPONSE";
         dialogTitle.innerText = "🎉 戰鬥意志燃燒！";
         dialogContent.innerText = "來吧，一起幫力維吸出來！";
@@ -553,11 +553,11 @@ dialogBtn1.addEventListener("click", () => {
     } else if (dialogStep === "FINAL_RESPONSE") {
         resetGame();
     }
-});
+}
 
-dialogBtn2.addEventListener("click", () => {
+function handleBtn2Click(e) {
+    if (e && e.preventDefault) e.preventDefault();
     if (dialogStep === "WIN_CHOICE") {
-        // 選擇「不要」
         dialogStep = "FINAL_RESPONSE";
         dialogTitle.innerText = "😏 無法拒絕！";
         dialogContent.innerText = "不要就是要，來吧，一起幫力維吸出來！";
@@ -567,7 +567,12 @@ dialogBtn2.addEventListener("click", () => {
     } else if (dialogStep === "FINAL_RESPONSE") {
         window.location.href = "index.html";
     }
-});
+}
+
+dialogBtn1.addEventListener("click", handleBtn1Click);
+dialogBtn1.addEventListener("touchend", handleBtn1Click);
+dialogBtn2.addEventListener("click", handleBtn2Click);
+dialogBtn2.addEventListener("touchend", handleBtn2Click);
 
 function showUnlockBlinkDialog() {
     isPausedForDialog = true;
@@ -957,6 +962,7 @@ function gameLoop(now) {
     const dt = (now - lastTime) / 1000;
     lastTime = now;
 
+    // 暫停狀態：維持正常刷新畫面與循環，不卡死
     if (isPausedForDialog) {
         render(null, now);
         requestAnimationFrame(gameLoop);
@@ -1103,7 +1109,7 @@ function gameLoop(now) {
         alertVal = Math.max(0, alertVal - 10 * dt);
     }
 
-    // 暴露值 40% 觸發掌風
+    // 暴露值 40% 掌風
     if (alertVal >= 40) {
         windWaveTimer += dt;
         if (windWaveTimer > 2.45 && !windWaveActive) {
@@ -1142,7 +1148,7 @@ function gameLoop(now) {
     let muscleTight = alertVal >= 70;
     if (muscleTight) screenShakeTimer += dt * 15;
 
-    // 暴露值 100% 觸發巨掌合圍 QTE
+    // 暴露值 100% QTE
     if (alertVal >= 100 && !qteActive) {
         qteActive = true;
         qteTimer = 0.85;
@@ -1177,12 +1183,11 @@ function gameLoop(now) {
             alertVal = Math.min(100, alertVal + alertSpd * dt);
             health = Math.min(100, health + 14 * dt);
             
-            // 暴露值首次達 10% 彈窗提示
+            // 暴露值首次達 10% 彈窗提示 (修復中斷 Bug)
             if (prevAlert < 10 && alertVal >= 10 && !hasPromptedAlert10) {
                 hasPromptedAlert10 = true;
                 stopSuck();
                 showAlert10Dialog();
-                return;
             }
 
             // 壽星精華液達 10% 解鎖瞬移
@@ -1191,14 +1196,12 @@ function gameLoop(now) {
                 updateBlinkBtnUI();
                 stopSuck();
                 showUnlockBlinkDialog();
-                return;
             }
 
-            // 壽星精華液吸滿 100% 過關勝利！
+            // 壽星精華液吸滿 100% 過關勝利
             if (essence >= 100 && !isStageComplete) {
                 stopSuck();
                 showWinDialog();
-                return;
             }
 
             statusText.innerText = `🩸 汲取【${currentTarget.name}】精華液中！`;
@@ -1220,7 +1223,6 @@ function gameLoop(now) {
                 hasPromptedAlert10 = true;
                 stopSuck();
                 showAlert10Dialog();
-                return;
             }
 
             statusText.innerText = `🩸 正在叮咬【${currentTarget.name}】(回血有效，精華無效)`;
@@ -1329,7 +1331,7 @@ function render(currentTarget, timestamp) {
         }
     }
 
-    // 繪製飛行血包
+    // 繪製動態飛行血包
     for (let bp of bloodPacks) {
         ctx.save();
         ctx.translate(bp.x, bp.y);
