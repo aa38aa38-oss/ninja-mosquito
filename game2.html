@@ -35,7 +35,6 @@
         #arena-joystick { position: absolute; width: 140px; height: 140px; margin-left: -70px; margin-top: -70px; border-radius: 50%; background: radial-gradient(circle, rgba(255, 255, 255, 0.08) 0%, rgba(0, 0, 0, 0.45) 80%); border: 2px solid rgba(255, 255, 255, 0.3); box-shadow: 0 0 15px rgba(0, 0, 0, 0.6); pointer-events: none; display: none; z-index: 15; }
         #arena-knob { position: absolute; width: 56px; height: 56px; top: 42px; left: 42px; border-radius: 50%; background: radial-gradient(circle, rgba(255, 255, 255, 0.9) 0%, rgba(200, 200, 200, 0.6) 100%); border: 2px solid rgba(255, 255, 255, 0.8); box-shadow: 0 0 12px rgba(255, 255, 255, 0.5); pointer-events: none; }
 
-        /* 技能面板 */
         #arena-action-pad { position: absolute; right: 15px; bottom: 20px; width: 220px; height: 220px; z-index: 25; touch-action: none; pointer-events: none; }
         #suck-btn { position: absolute; right: 15px; bottom: 15px; width: 86px; height: 86px; border-radius: 50%; background: radial-gradient(circle, rgba(229, 57, 53, 0.9) 0%, rgba(183, 28, 28, 0.95) 100%); border: 3px solid rgba(255, 138, 128, 0.85); box-shadow: 0 0 20px rgba(211, 47, 47, 0.7); color: #fff; font-size: 17px; font-weight: 900; display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; pointer-events: auto; transition: transform 0.08s ease; }
         #suck-btn:active, #suck-btn.pressed { transform: scale(0.92); background: radial-gradient(circle, rgba(255, 23, 68, 1) 0%, rgba(213, 0, 0, 1) 100%); }
@@ -135,6 +134,7 @@ function resize() { canvas.width = window.innerWidth; canvas.height = window.inn
 window.addEventListener("resize", resize);
 resize();
 
+// 載入全套圖片素材（包含 shadow1, shadow2）
 const assets = {
     bg: new Image(),
     fly1: new Image(),
@@ -146,7 +146,9 @@ const assets = {
     bird1: new Image(),
     bird2: new Image(),
     poison1: new Image(),
-    poison2: new Image()
+    poison2: new Image(),
+    shadow1: new Image(),
+    shadow2: new Image()
 };
 assets.bg.src = "bg_level2.png";
 assets.fly1.src = "mosquito_fly_1.png";
@@ -159,6 +161,8 @@ assets.bird1.src = "bird1.png";
 assets.bird2.src = "bird2.png";
 assets.poison1.src = "poison1.png";
 assets.poison2.src = "poison2.png";
+assets.shadow1.src = "shadow1.png";
+assets.shadow2.src = "shadow2.png";
 
 let worldWidth = 1507;
 let worldHeight = 798;
@@ -176,18 +180,21 @@ let health = 100;
 let alertVal = 0;
 let isSucking = false;
 
-// 技能數值
+// 忍術狀態
 let blinkCooldown = 0;
 let stealthCooldown = 0;
 let stealthActiveTimer = 0;
 let hasLearnedFrenzy = false;
 let frenzyCooldown = 0;
 let frenzyActiveTimer = 0;
+let frenzyStartupTimer = 0; // 結印前置演出 (0.6秒)
 
 let isStageComplete = false;
 let joyVector = { x: 0, y: 0 };
 let bloodParticles = [];
 let blinkShadows = [];
+let featherParticles = []; // 麻雀羽毛特效
+let smokeParticles = [];   // 分身煙霧特效
 let showDebugBoxes = false;
 
 let hazards = [];
@@ -209,7 +216,7 @@ let windWaveWarning = false;
 let windWaveWarningTimer = 0;
 let screenShakeTimer = 0;
 let hurtFlashTimer = 0;
-let essenceDrainFlashTimer = 0; // 精華液流失紫色閃爍
+let essenceDrainFlashTimer = 0;
 let qteActive = false;
 let qteTimer = 0;
 let slapHandsDist = 1.0;
@@ -242,8 +249,8 @@ function showUnlockFrenzyDialog() {
     isPausedForDialog = true;
     dialogStep = "UNLOCK_FRENZY";
     dialogTitle.innerText = "⚡ 領悟最終奧義！";
-    dialogContent.innerText = "壽星精華液達到 10%！\n你已學會【奧義·狂吸猛吸🌪️】！\n啟動後 5 秒內精華汲取與生命回復狂暴翻倍！";
-    dialogBtn1.innerText = "狂吸起來！";
+    dialogContent.innerText = "壽星精華液達到 10%！\n你已學會【奧義·大吸特吸🌪️】！\n啟動時結印召喚影分身，3隻蚊子進入【3倍暴風吸血狀態】維持 3 秒！";
+    dialogBtn1.innerText = "大吸特吸！";
     dialogModal.style.display = "flex";
 }
 
@@ -266,7 +273,7 @@ function resetGame() {
     mosquito.x = 1228; mosquito.y = 382; mosquito.isDead = false; mosquito.deathType = ""; mosquito.invincibleTimer = 0;
     essence = 0; health = 100; alertVal = 0; isSucking = false;
     blinkCooldown = 0; stealthCooldown = 0; stealthActiveTimer = 0;
-    hasLearnedFrenzy = false; frenzyCooldown = 0; frenzyActiveTimer = 0; isStageComplete = false;
+    hasLearnedFrenzy = false; frenzyCooldown = 0; frenzyActiveTimer = 0; frenzyStartupTimer = 0; isStageComplete = false;
     updateSkillsUI();
     qteActive = false; qteTimer = 0; slapHandsDist = 1.0; deathAnimTimer = 0; soulY = 0;
     hurtFlashTimer = 0; essenceDrainFlashTimer = 0;
@@ -275,7 +282,7 @@ function resetGame() {
     frogs = []; frogSpawnTimer = 0;
     birds = []; birdSpawnTimer = 0;
     poisons = []; poisonSpawnTimer = 0;
-    bloodParticles = []; blinkShadows = [];
+    bloodParticles = []; blinkShadows = []; featherParticles = []; smokeParticles = [];
     document.getElementById("qte-overlay").style.display = "none";
     document.getElementById("dodge-popup").style.display = "none";
     document.getElementById("game-over-screen").style.display = "none";
@@ -303,11 +310,11 @@ function updateSkillsUI() {
 
     if (!hasLearnedFrenzy) {
         frenzyBtn.classList.add("skill-locked");
-        frenzyBtn.innerHTML = `<span>🔒</span><span style="font-size:10px;">狂吸</span>`;
+        frenzyBtn.innerHTML = `<span>🔒</span><span style="font-size:10px;">奧義</span>`;
     } else {
         frenzyBtn.classList.remove("skill-locked");
-        if (frenzyActiveTimer > 0) { frenzyBtn.innerHTML = `<span>🌪️</span><span style="font-size:10px;">${frenzyActiveTimer.toFixed(1)}s</span>`; frenzyBtn.style.filter = "drop-shadow(0 0 8px #ff6d00)"; }
-        else if (frenzyCooldown <= 0) { frenzyBtn.innerHTML = `<span>🌪️</span><span style="font-size:10px;">狂吸</span>`; frenzyBtn.style.opacity = "1"; frenzyBtn.style.filter = "none"; }
+        if (frenzyActiveTimer > 0) { frenzyBtn.innerHTML = `<span>🌪️</span><span style="font-size:10px;">${frenzyActiveTimer.toFixed(1)}s</span>`; frenzyBtn.style.filter = "drop-shadow(0 0 10px #ff1744)"; }
+        else if (frenzyCooldown <= 0) { frenzyBtn.innerHTML = `<span>🌪️</span><span style="font-size:10px;">大吸特吸</span>`; frenzyBtn.style.opacity = "1"; frenzyBtn.style.filter = "none"; }
         else { frenzyBtn.innerHTML = `<span>${frenzyCooldown.toFixed(1)}</span>`; frenzyBtn.style.opacity = "0.6"; frenzyBtn.style.filter = "none"; }
     }
 }
@@ -411,14 +418,28 @@ function triggerStealth(e) {
 stealthBtn.addEventListener("click", triggerStealth);
 stealthBtn.addEventListener("touchstart", triggerStealth, { passive: false });
 
-// 技能3：奧義·狂吸猛吸
+// 技能3：奧義·大吸特吸（結印 + 影分身 3秒3倍吸血）
 function triggerFrenzy(e) {
     if (e && e.preventDefault) e.preventDefault();
     if (!hasLearnedFrenzy) return;
     if (frenzyCooldown <= 0 && frenzyActiveTimer <= 0 && !mosquito.isDead && !isPausedForDialog) {
-        frenzyCooldown = 12.0;
-        frenzyActiveTimer = 5.0;
-        showDodgeEffect("🌪️ 奧義·狂吸猛吸啟動！");
+        frenzyCooldown = 11.0;
+        frenzyStartupTimer = 0.5; // 前置結印 0.5 秒 (先shadow1再shadow2)
+        frenzyActiveTimer = 3.5;   // 0.5秒結印 + 3.0秒影分身狂吸
+        mosquito.invincibleTimer = 3.5;
+
+        // 生成忍術分身白煙
+        for (let i = 0; i < 24; i++) {
+            smokeParticles.push({
+                x: mosquito.x + (Math.random() - 0.5) * 60,
+                y: mosquito.y + (Math.random() - 0.5) * 60,
+                vx: (Math.random() - 0.5) * 120,
+                vy: (Math.random() - 0.5) * 120,
+                radius: Math.random() * 8 + 6,
+                alpha: 0.9
+            });
+        }
+        showDodgeEffect("🌪️ 奧義·大吸特吸！3倍吸血啟動！");
     }
 }
 frenzyBtn.addEventListener("click", triggerFrenzy);
@@ -437,43 +458,49 @@ function triggerDeath(reason) {
     setTimeout(() => { document.getElementById("game-over-screen").style.display = "flex"; }, 1800);
 }
 
-// 1. 青蛙生成
+// 1. 青蛙生成：距離大幅縮短至蚊子身邊 150~220px 內，同框清晰可見
 function spawnFrog() {
+    const angle = Math.random() * Math.PI * 2;
+    const dist = Math.random() * 80 + 150;
+    const fx = Math.max(80, Math.min(worldWidth - 120, mosquito.x + Math.cos(angle) * dist));
+    const fy = Math.max(120, Math.min(worldHeight - 120, mosquito.y + Math.sin(angle) * dist));
+
     frogs.push({
-        x: Math.random() * (worldWidth - 260) + 130,
-        y: Math.random() * 200 + 480,
-        state: "IDLE",
-        timer: 1.2,
-        w: 90,
-        h: 75,
+        x: fx,
+        y: fy,
+        state: "AIM",
+        timer: 1.0,
+        w: 80,
+        h: 68,
         targetX: mosquito.x,
         targetY: mosquito.y
     });
 }
 
-// 2. 麻雀生成
+// 2. 麻雀生成：在蚊子周圍 240px 盤旋突擊，同屏可見
 function spawnBird() {
-    const fromLeft = Math.random() < 0.5;
-    const startX = fromLeft ? -80 : worldWidth + 80;
-    const startY = Math.random() * 250 + 60;
-    const destX = fromLeft ? worldWidth + 100 : -100;
-    const destY = mosquito.y + (Math.random() - 0.5) * 80;
-    const angle = Math.atan2(destY - startY, destX - startX);
-    const speed = 420;
+    const angle = Math.random() * Math.PI * 2;
+    const startX = Math.max(60, Math.min(worldWidth - 80, mosquito.x + Math.cos(angle) * 230));
+    const startY = Math.max(60, Math.min(worldHeight - 100, mosquito.y + Math.sin(angle) * 230));
+    const targetX = mosquito.x;
+    const targetY = mosquito.y;
+    const moveAngle = Math.atan2(targetY - startY, targetX - startX);
+    const speed = 460;
 
     birds.push({
         x: startX,
         y: startY,
-        vx: Math.cos(angle) * speed,
-        vy: Math.sin(angle) * speed,
-        facingRight: fromLeft,
+        vx: Math.cos(moveAngle) * speed,
+        vy: Math.sin(moveAngle) * speed,
+        facingRight: Math.cos(moveAngle) > 0,
         frameTimer: 0,
         frame: 0,
-        w: 80,
-        h: 75,
+        w: 78,
+        h: 70,
         warnTimer: 0.9,
-        destX: destX,
-        destY: destY
+        destX: targetX,
+        destY: targetY,
+        life: 2.2
     });
 }
 
@@ -519,6 +546,7 @@ function gameLoop(now) {
     if (mosquito.invincibleTimer > 0) mosquito.invincibleTimer -= dt;
     if (stealthActiveTimer > 0) stealthActiveTimer -= dt;
     if (stealthCooldown > 0) stealthCooldown -= dt;
+    if (frenzyStartupTimer > 0) frenzyStartupTimer -= dt;
     if (frenzyActiveTimer > 0) frenzyActiveTimer -= dt;
     if (frenzyCooldown > 0) frenzyCooldown -= dt;
     if (blinkCooldown > 0) blinkCooldown -= dt;
@@ -535,31 +563,25 @@ function gameLoop(now) {
 
     hazardSpawnTimer += dt; if (hazardSpawnTimer > 3.0) { spawnHazard(); hazardSpawnTimer = 0; }
     frogSpawnTimer += dt; if (frogSpawnTimer > 4.2) { if (frogs.length < 2) spawnFrog(); frogSpawnTimer = 0; }
-    birdSpawnTimer += dt; if (birdSpawnTimer > 5.0) { if (birds.length < 2) spawnBird(); birdSpawnTimer = 0; }
+    birdSpawnTimer += dt; if (birdSpawnTimer > 4.8) { if (birds.length < 2) spawnBird(); birdSpawnTimer = 0; }
     poisonSpawnTimer += dt; if (poisonSpawnTimer > 4.5) { if (poisons.length < 2) spawnPoison(); poisonSpawnTimer = 0; }
     bloodPackSpawnTimer += dt; if (bloodPackSpawnTimer > 5.5) { if (bloodPacks.length < 3) spawnBloodPack(); bloodPackSpawnTimer = 0; }
 
-    // 1. 青蛙邏輯：命中只減少壽星精華液，不減少生命值
+    // 1. 青蛙邏輯
     for (let i = frogs.length - 1; i >= 0; i--) {
         let f = frogs[i];
         f.timer -= dt;
-        if (f.state === "IDLE") {
-            if (f.timer <= 0) {
-                f.state = "AIM";
-                f.timer = 0.8;
-                f.targetX = mosquito.x;
-                f.targetY = mosquito.y;
-            }
-        } else if (f.state === "AIM") {
+        if (f.state === "AIM") {
+            f.targetX = mosquito.x;
+            f.targetY = mosquito.y;
             if (f.timer <= 0) {
                 f.state = "STRIKE";
-                f.timer = 0.7;
+                f.timer = 0.55;
             }
         } else if (f.state === "STRIKE") {
             if (mosquito.invincibleTimer <= 0) {
                 const distToTongue = Math.hypot(mosquito.x - f.targetX, mosquito.y - f.targetY);
-                if (distToTongue < 42) {
-                    // 扣除壽星精華液 25%，不扣生命值
+                if (distToTongue < 45) {
                     essence = Math.max(0, essence - 25);
                     essenceDrainFlashTimer = 0.3;
                     showDodgeEffect("🩸 精華液被青蛙舔掉啦！-25%");
@@ -569,7 +591,7 @@ function gameLoop(now) {
         }
     }
 
-    // 2. 麻雀邏輯：命中只減少壽星精華液，不減少生命值
+    // 2. 麻雀邏輯
     for (let i = birds.length - 1; i >= 0; i--) {
         let b = birds[i];
         if (b.warnTimer > 0) {
@@ -577,24 +599,35 @@ function gameLoop(now) {
         } else {
             b.x += b.vx * dt;
             b.y += b.vy * dt;
+            b.life -= dt;
             b.frameTimer += dt;
             if (b.frameTimer > 0.08) {
                 b.frame = b.frame === 0 ? 1 : 0;
                 b.frameTimer = 0;
             }
+
+            // 麻雀尾部噴出羽毛特效
+            if (Math.random() < 0.35) {
+                featherParticles.push({
+                    x: b.x, y: b.y,
+                    vx: -b.vx * 0.15 + (Math.random() - 0.5) * 30,
+                    vy: -b.vy * 0.15 + (Math.random() - 0.5) * 30,
+                    alpha: 0.85
+                });
+            }
+
             if (mosquito.invincibleTimer <= 0) {
                 if (Math.hypot(mosquito.x - b.x, mosquito.y - b.y) < 45) {
-                    // 扣除壽星精華液 20%，不扣生命值
                     essence = Math.max(0, essence - 20);
                     essenceDrainFlashTimer = 0.3;
                     showDodgeEffect("🩸 精華液被麻雀叼走了！-20%");
                 }
             }
-            if (b.x < -150 || b.x > worldWidth + 150) birds.splice(i, 1);
+            if (b.life <= 0) birds.splice(i, 1);
         }
     }
 
-    // 3. 殺蟲液邏輯：毒氣中持續減少壽星精華液，不減少生命值
+    // 3. 殺蟲液邏輯
     for (let i = poisons.length - 1; i >= 0; i--) {
         let p = poisons[i];
         p.timer -= dt;
@@ -608,7 +641,6 @@ function gameLoop(now) {
             const sprayCenterY = p.y + 10;
             if (mosquito.invincibleTimer <= 0) {
                 if (Math.hypot(mosquito.x - sprayCenterX, mosquito.y - sprayCenterY) < p.sprayRadius) {
-                    // 持續流失壽星精華液，提高暴露值，不扣生命值
                     essence = Math.max(0, essence - 22 * dt);
                     alertVal = Math.min(100, alertVal + 24 * dt);
                     essenceDrainFlashTimer = 0.1;
@@ -627,7 +659,7 @@ function gameLoop(now) {
         if (bp.life <= 0) bloodPacks.splice(i, 1);
     }
 
-    // 電蚊拍與蚊香（維持原有扣生命值邏輯）
+    // 電蚊拍與蚊香
     for (let i = hazards.length - 1; i >= 0; i--) {
         let h = hazards[i];
         if (h.type === "SWAT") {
@@ -668,14 +700,16 @@ function gameLoop(now) {
     const currentTarget = getCurrentTarget();
     const statusText = document.getElementById("status-text");
 
+    // 吸血邏輯（狂吸猛吸 3 秒內 3 倍狂暴吸血）
     if (isSucking) {
         suckTick += dt * 18;
         if (!currentTarget) { statusText.innerText = "❌ 咬到衣服或紙張！無法吸血"; statusText.style.color = "#bbb"; }
         else if (currentTarget.category === "BIRTHDAY_BOY") {
-            let frenzyMul = frenzyActiveTimer > 0 ? 2.2 : 1.0;
+            const isFrenzyActive = frenzyActiveTimer > 0 && frenzyStartupTimer <= 0;
+            let frenzyMul = isFrenzyActive ? 3.0 : 1.0; // 3 倍狂暴吸血！
             let rateMod = (muscleTight ? 0.5 : 1.0) * frenzyMul;
             let gain = 22 * rateMod;
-            let alertSpd = 36;
+            let alertSpd = isFrenzyActive ? 15 : 36; // 影分身時不易被察覺
             let prevEssence = essence;
 
             essence = Math.min(100, essence + gain * dt);
@@ -694,8 +728,8 @@ function gameLoop(now) {
                 showAllCompleteDialog();
             }
 
-            statusText.innerText = frenzyActiveTimer > 0 ? `🌪️ 【狂吸猛吸中】壽星精華液高速飆升！` : `🩸 汲取【${currentTarget.name}】精華液中！`;
-            statusText.style.color = frenzyActiveTimer > 0 ? "#ff9100" : "#ff1744";
+            statusText.innerText = isFrenzyActive ? `🌪️ 【影分身狂吸中】3倍精華液暴風汲取！` : `🩸 汲取【${currentTarget.name}】精華液中！`;
+            statusText.style.color = isFrenzyActive ? "#ff1744" : "#ff1744";
 
             if (Math.random() < 0.6) _spawnBlood(mosquito.facingRight ? 11 : -11, 16, true);
         } else if (currentTarget.category === "FAT_MAN") {
@@ -729,6 +763,8 @@ function gameLoop(now) {
 function updateParticles(dt) {
     for (let i = bloodParticles.length - 1; i >= 0; i--) { let p = bloodParticles[i]; p.x += p.vx * dt; p.y += p.vy * dt; p.alpha -= 2.2 * dt; if (!p.color) p.vy += 100 * dt; if (p.alpha <= 0) bloodParticles.splice(i, 1); }
     for (let i = blinkShadows.length - 1; i >= 0; i--) { blinkShadows[i].alpha -= 3.0 * dt; if (blinkShadows[i].alpha <= 0) blinkShadows.splice(i, 1); }
+    for (let i = featherParticles.length - 1; i >= 0; i--) { let f = featherParticles[i]; f.x += f.vx * dt; f.y += f.vy * dt; f.alpha -= 1.8 * dt; if (f.alpha <= 0) featherParticles.splice(i, 1); }
+    for (let i = smokeParticles.length - 1; i >= 0; i--) { let s = smokeParticles[i]; s.x += s.vx * dt; s.y += s.vy * dt; s.alpha -= 2.0 * dt; if (s.alpha <= 0) smokeParticles.splice(i, 1); }
 }
 function _spawnBlood(offsetX, offsetY, isRed) { bloodParticles.push({ x: mosquito.x + offsetX, y: mosquito.y + offsetY, vx: (Math.random() - 0.5) * 45, vy: -Math.random() * 60 - 20, radius: Math.random() * 1.8 + 1.0, alpha: 1.0, isRed: isRed }); }
 
@@ -755,55 +791,81 @@ function render(currentTarget, timestamp) {
         }
     }
 
-    // 1. 繪製青蛙
+    // 1. 青蛙特效彈道（帶毒液波浪長舌）
     for (let f of frogs) {
         ctx.save();
         if (f.state === "AIM") {
-            ctx.strokeStyle = "rgba(255, 235, 59, 0.75)";
-            ctx.lineWidth = 2;
-            ctx.setLineDash([6, 4]);
+            // 瞄準鎖定特效環
+            ctx.strokeStyle = "rgba(255, 235, 59, 0.85)";
+            ctx.lineWidth = 2.5;
+            ctx.setLineDash([5, 5]);
             ctx.beginPath();
-            ctx.moveTo(f.x + f.w / 2, f.y + 20);
-            ctx.lineTo(f.targetX, f.targetY);
+            ctx.arc(f.targetX, f.targetY, 20 + Math.sin(performance.now() / 80) * 4, 0, Math.PI * 2);
             ctx.stroke();
 
-            ctx.strokeStyle = "#ffeb3b";
+            // 準星十字
             ctx.beginPath();
-            ctx.arc(f.targetX, f.targetY, 16, 0, Math.PI * 2);
+            ctx.moveTo(f.targetX - 28, f.targetY); ctx.lineTo(f.targetX + 28, f.targetY);
+            ctx.moveTo(f.targetX, f.targetY - 28); ctx.lineTo(f.targetX, f.targetY + 28);
             ctx.stroke();
         }
 
         if (f.state === "STRIKE") {
             if (assets.frog2.complete) ctx.drawImage(assets.frog2, f.x, f.y, f.w + 20, f.h);
+
+            // 具有彈性彎曲的黏液波浪長舌
+            const midX = (f.x + 40 + f.targetX) / 2 + Math.sin(f.timer * 30) * 18;
+            const midY = (f.y + 25 + f.targetY) / 2 + Math.cos(f.timer * 30) * 18;
+
             ctx.strokeStyle = "#ff1744";
-            ctx.lineWidth = 7;
+            ctx.lineWidth = 9;
             ctx.lineCap = "round";
             ctx.beginPath();
             ctx.moveTo(f.x + 40, f.y + 25);
-            ctx.lineTo(f.targetX, f.targetY);
+            ctx.quadraticCurveTo(midX, midY, f.targetX, f.targetY);
             ctx.stroke();
+
+            // 舌面黏液亮光
+            ctx.strokeStyle = "#ff8a80";
+            ctx.lineWidth = 3;
+            ctx.stroke();
+
+            // 舌尖毒液水花
+            ctx.fillStyle = "#76ff03";
+            ctx.beginPath();
+            ctx.arc(f.targetX, f.targetY, 7, 0, Math.PI * 2);
+            ctx.fill();
         } else {
             if (assets.frog1.complete) ctx.drawImage(assets.frog1, f.x, f.y, f.w, f.h);
         }
         ctx.restore();
     }
 
-    // 2. 繪製麻雀
+    // 2. 麻雀特效彈道（風刃氣流與羽毛）
     for (let b of birds) {
         ctx.save();
         if (b.warnTimer > 0) {
-            ctx.strokeStyle = "rgba(255, 23, 68, 0.75)";
-            ctx.lineWidth = 2;
+            // 風刃預警路徑
+            ctx.strokeStyle = "rgba(255, 61, 0, 0.75)";
+            ctx.lineWidth = 3;
             ctx.setLineDash([8, 6]);
             ctx.beginPath();
             ctx.moveTo(b.x, b.y);
             ctx.lineTo(b.destX, b.destY);
             ctx.stroke();
 
+            // 警告浮動文字
             ctx.font = "bold 13px sans-serif";
-            ctx.fillStyle = "#ff5252";
-            ctx.fillText("⚠️ 麻雀俯衝！", b.x - 30, b.y - 12);
+            ctx.fillStyle = "#ff3d00";
+            ctx.fillText("🌪️ 麻雀俯衝！", b.x - 30, b.y - 12);
         } else {
+            // 俯衝破空氣流波紋
+            ctx.strokeStyle = "rgba(255, 255, 255, 0.4)";
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.arc(b.x, b.y, 35, 0, Math.PI * 2);
+            ctx.stroke();
+
             ctx.translate(b.x, b.y);
             if (!b.facingRight) ctx.scale(-1, 1);
             const currentBirdImg = b.frame === 0 ? assets.bird1 : assets.bird2;
@@ -814,7 +876,27 @@ function render(currentTarget, timestamp) {
         ctx.restore();
     }
 
-    // 3. 繪製殺蟲液瓶與毒霧
+    // 繪製掉落羽毛粒子
+    for (let f of featherParticles) {
+        ctx.save();
+        ctx.fillStyle = `rgba(188, 170, 153, ${f.alpha})`;
+        ctx.beginPath();
+        ctx.ellipse(f.x, f.y, 4, 8, 0.4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+    }
+
+    // 繪製忍術白煙粒子
+    for (let s of smokeParticles) {
+        ctx.save();
+        ctx.fillStyle = `rgba(240, 240, 255, ${s.alpha})`;
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, s.radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+    }
+
+    // 3. 殺蟲液
     for (let p of poisons) {
         ctx.save();
         if (p.state === "AIM") {
@@ -827,7 +909,6 @@ function render(currentTarget, timestamp) {
             ctx.stroke();
         } else {
             if (assets.poison2.complete) ctx.drawImage(assets.poison2, p.x - 60, p.y - 20, p.w + 60, p.h + 20);
-            
             let grad = ctx.createRadialGradient(p.x - 70, p.y + 10, 10, p.x - 70, p.y + 10, p.sprayRadius);
             grad.addColorStop(0, "rgba(76, 175, 80, 0.65)");
             grad.addColorStop(0.7, "rgba(100, 221, 23, 0.45)");
@@ -882,8 +963,9 @@ function render(currentTarget, timestamp) {
     for (let s of blinkShadows) { ctx.save(); ctx.translate(s.x, s.y); if (s.facingRight) ctx.scale(1, 1); else ctx.scale(-1, 1); ctx.globalAlpha = s.alpha * 0.6; if (assets.fly1.complete) ctx.drawImage(assets.fly1, -mosquito.size / 2, -mosquito.size / 2, mosquito.size, mosquito.size); ctx.restore(); }
     for (let p of bloodParticles) { ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2); ctx.fillStyle = p.color ? p.color : `rgba(220, 20, 60, ${p.alpha})`; ctx.fill(); }
 
-    // 繪製蚊子
-    ctx.save(); ctx.translate(mosquito.x, mosquito.y);
+    // ---------------- 繪製蚊子本體、結印與三隻影分身吸血 ----------------
+    ctx.save();
+    ctx.translate(mosquito.x, mosquito.y);
     const curTime = timestamp || performance.now();
 
     if (stealthActiveTimer > 0) {
@@ -901,12 +983,46 @@ function render(currentTarget, timestamp) {
         } else { ctx.rotate(Math.PI); if (assets.dizzy.complete) ctx.drawImage(assets.dizzy, -mosquito.size / 2, -mosquito.size / 2, mosquito.size, mosquito.size); }
     } else {
         if (mosquito.facingRight) ctx.scale(1, 1); else ctx.scale(-1, 1);
-        let currentImg = assets.fly1;
-        if (isSucking && currentTarget) {
-            if (currentTarget.category === "FAT_MAN") { currentImg = assets.dizzy.complete ? assets.dizzy : assets.fly1; ctx.translate((Math.random() - 0.5) * 3, (Math.random() - 0.5) * 3); }
-            else { currentImg = assets.suck.complete ? assets.suck : assets.fly1; ctx.translate(0, Math.sin(suckTick * 2.0) * 0.8); }
-        } else currentImg = mosquito.frame === 0 ? assets.fly1 : assets.fly2;
-        if (currentImg.complete) ctx.drawImage(currentImg, -mosquito.size / 2, -mosquito.size / 2, mosquito.size, mosquito.size);
+
+        // 奧義階段 1：結印演出 (先shadow1再shadow2)
+        if (frenzyStartupTimer > 0) {
+            let startupImg = frenzyStartupTimer > 0.25 ? assets.shadow1 : assets.shadow2;
+            if (startupImg.complete) {
+                ctx.drawImage(startupImg, -mosquito.size / 2 - 4, -mosquito.size / 2 - 8, mosquito.size + 8, mosquito.size + 8);
+            }
+        } 
+        // 奧義階段 2：三隻影分身同時進入吸血狀態 (維持 3 秒)
+        else if (frenzyActiveTimer > 0) {
+            ctx.shadowColor = "#ff1744";
+            ctx.shadowBlur = 12;
+
+            // 左分身
+            ctx.save();
+            ctx.translate(-26, Math.sin(suckTick * 2.0) * 1.5);
+            if (assets.suck.complete) ctx.drawImage(assets.suck, -mosquito.size / 2, -mosquito.size / 2, mosquito.size, mosquito.size);
+            ctx.restore();
+
+            // 右分身
+            ctx.save();
+            ctx.translate(26, Math.cos(suckTick * 2.0) * 1.5);
+            if (assets.suck.complete) ctx.drawImage(assets.suck, -mosquito.size / 2, -mosquito.size / 2, mosquito.size, mosquito.size);
+            ctx.restore();
+
+            // 本體 (中間)
+            ctx.save();
+            ctx.translate(0, Math.sin(suckTick * 2.2) * 1.0);
+            if (assets.suck.complete) ctx.drawImage(assets.suck, -mosquito.size / 2, -mosquito.size / 2, mosquito.size, mosquito.size);
+            ctx.restore();
+        } 
+        // 平常吸血與飛行狀態
+        else {
+            let currentImg = assets.fly1;
+            if (isSucking && currentTarget) {
+                if (currentTarget.category === "FAT_MAN") { currentImg = assets.dizzy.complete ? assets.dizzy : assets.fly1; ctx.translate((Math.random() - 0.5) * 3, (Math.random() - 0.5) * 3); }
+                else { currentImg = assets.suck.complete ? assets.suck : assets.fly1; ctx.translate(0, Math.sin(suckTick * 2.0) * 0.8); }
+            } else currentImg = mosquito.frame === 0 ? assets.fly1 : assets.fly2;
+            if (currentImg.complete) ctx.drawImage(currentImg, -mosquito.size / 2, -mosquito.size / 2, mosquito.size, mosquito.size);
+        }
     }
     ctx.restore();
 
@@ -917,9 +1033,7 @@ function render(currentTarget, timestamp) {
     }
     ctx.restore();
 
-    // 扣血紅色閃爍
     if (hurtFlashTimer > 0) { ctx.save(); ctx.fillStyle = `rgba(255, 0, 0, ${hurtFlashTimer * 1.5})`; ctx.fillRect(0, 0, canvas.width, canvas.height); ctx.restore(); }
-    // 精華液流失紫色閃爍
     if (essenceDrainFlashTimer > 0) { ctx.save(); ctx.fillStyle = `rgba(224, 64, 251, ${essenceDrainFlashTimer * 1.2})`; ctx.fillRect(0, 0, canvas.width, canvas.height); ctx.restore(); }
 }
 requestAnimationFrame(gameLoop);
