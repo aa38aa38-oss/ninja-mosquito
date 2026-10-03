@@ -31,7 +31,6 @@
             height: 100%;
         }
 
-        /* 頂部 HUD (半透明懸浮) */
         #hud {
             position: absolute;
             top: env(safe-area-inset-top, 15px);
@@ -84,7 +83,6 @@
             transition: width 0.08s linear;
         }
 
-        /* 右上角：熱區檢視切換開關 */
         #debug-btn {
             position: absolute;
             top: env(safe-area-inset-top, 15px);
@@ -99,7 +97,6 @@
             cursor: pointer;
         }
 
-        /* 警覺度 100% QTE 提示 */
         #qte-overlay {
             position: absolute;
             top: 25%;
@@ -120,7 +117,6 @@
             100% { transform: translate(-50%, -50%) scale(1.15); }
         }
 
-        /* 完美閃避提示 */
         #dodge-popup {
             position: absolute;
             top: 40%;
@@ -137,7 +133,6 @@
             transition: transform 0.2s ease-out, opacity 0.3s ease-out;
         }
 
-        /* 左半邊動態搖桿感應區 */
         #touch-left-zone {
             position: absolute;
             top: 0;
@@ -174,7 +169,6 @@
             pointer-events: none;
         }
 
-        /* 右側動作按鈕 */
         #action-container {
             position: absolute;
             right: 25px;
@@ -218,7 +212,6 @@
             transform: scale(0.9);
         }
 
-        /* 死亡/失敗結算大幕 */
         #game-over-screen {
             position: absolute;
             top: 0;
@@ -313,7 +306,6 @@
         <div id="blink-btn" class="hud-btn">⚡ 瞬移</div>
     </div>
 
-    <!-- 死亡結算畫面 -->
     <div id="game-over-screen">
         <div id="death-title">啪！忍道終結</div>
         <div id="death-reason">壽星神掌從天而降，你被拍成了肉餅...</div>
@@ -335,7 +327,6 @@ function resize() {
 window.addEventListener("resize", resize);
 resize();
 
-// 載入圖片素材
 const assets = {
     bg: new Image(),
     fly1: new Image(),
@@ -437,7 +428,7 @@ function resetGame() {
 
 document.getElementById("retry-btn").addEventListener("click", resetGame);
 document.getElementById("home-btn").addEventListener("click", () => {
-    window.location.href = "home.html";
+    window.location.href = "index.html";
 });
 
 function getCharacterAreas() {
@@ -1010,11 +1001,9 @@ function render(currentTarget, timestamp) {
         }
     }
 
-    // 繪製各項雜物陷阱
     for (let h of hazards) {
         ctx.save();
         if (h.type === "SPRAY") {
-            // 1. 殺蟲劑白霧本體 (放射漸層)
             let grad = ctx.createRadialGradient(h.x, h.y, 4, h.x, h.y, h.radius);
             grad.addColorStop(0, "rgba(255, 255, 255, 0.92)");
             grad.addColorStop(0.65, "rgba(230, 250, 255, 0.65)");
@@ -1024,7 +1013,6 @@ function render(currentTarget, timestamp) {
             ctx.arc(h.x, h.y, h.radius, 0, Math.PI * 2);
             ctx.fill();
 
-            // 2. 明顯的警戒外框描邊 (外層亮黃色虛線光暈)
             ctx.lineWidth = 2.5;
             ctx.strokeStyle = "rgba(255, 235, 59, 0.95)";
             ctx.setLineDash([6, 5]);
@@ -1032,16 +1020,13 @@ function render(currentTarget, timestamp) {
             ctx.arc(h.x, h.y, h.radius, 0, Math.PI * 2);
             ctx.stroke();
 
-            // 3. 清楚文字標記："☠️ 殺蟲劑"
             ctx.setLineDash([]);
             ctx.font = "bold 13px sans-serif";
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
-            // 黑色描邊厚底，防止背景吃字
             ctx.lineWidth = 3;
             ctx.strokeStyle = "rgba(0, 0, 0, 0.85)";
             ctx.strokeText("☠️ 殺蟲劑", h.x, h.y - h.radius - 8);
-            // 亮黃色主文字
             ctx.fillStyle = "#fff59d";
             ctx.fillText("☠️ 殺蟲劑", h.x, h.y - h.radius - 8);
 

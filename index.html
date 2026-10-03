@@ -16,11 +16,10 @@
             width: 100%;
             height: 100%;
             overflow: hidden;
-            background-color: #0b0c10;
+            background-color: #000;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         }
-
-        #splash-container {
+        #home-container {
             position: relative;
             width: 100vw;
             height: 100vh;
@@ -28,12 +27,9 @@
             flex-direction: column;
             justify-content: flex-end;
             align-items: center;
-            padding-bottom: env(safe-area-inset-bottom, 45px);
+            padding-bottom: env(safe-area-inset-bottom, 50px);
             overflow: hidden;
-            background: radial-gradient(circle at 50% 30%, #1a1c2e 0%, #08090d 100%);
         }
-
-        /* 封面主視覺圖片 */
         #cover-img {
             position: absolute;
             top: 0;
@@ -43,35 +39,18 @@
             object-fit: cover;
             object-position: center;
             z-index: 1;
-            pointer-events: none;
-            transition: opacity 0.3s ease;
         }
-
-        /* 漸層遮罩，確保底端按鈕清晰易讀 */
-        .bottom-vignette {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            height: 40%;
-            background: linear-gradient(to top, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0) 100%);
-            z-index: 2;
-            pointer-events: none;
-        }
-
-        /* 按鈕區塊 */
-        .action-group {
+        .btn-container {
             position: relative;
-            z-index: 5;
+            z-index: 10;
+            width: 82%;
+            max-width: 320px;
             display: flex;
             flex-direction: column;
             gap: 15px;
-            width: 84%;
-            max-width: 320px;
-            margin-bottom: 25px;
+            margin-bottom: 30px;
         }
-
-        .menu-btn {
+        .portal-btn {
             width: 100%;
             padding: 15px 0;
             border-radius: 35px;
@@ -79,184 +58,115 @@
             font-weight: 900;
             letter-spacing: 2px;
             text-align: center;
-            color: #ffffff;
+            color: #fff;
             cursor: pointer;
             backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
-            transition: transform 0.12s ease, box-shadow 0.15s ease;
             text-decoration: none;
             display: block;
+            transition: transform 0.1s ease, box-shadow 0.15s ease;
         }
-
         #start-btn {
-            background: linear-gradient(135deg, #ff1744 0%, #c62828 100%);
+            background: linear-gradient(135deg, #ff1744 0%, #d50000 100%);
             border: 2px solid #ff8a80;
-            box-shadow: 0 0 22px rgba(255, 23, 68, 0.7);
+            box-shadow: 0 0 22px rgba(255, 23, 68, 0.85);
             animation: pulseGlow 1.5s infinite alternate;
         }
-
         @keyframes pulseGlow {
-            0% {
-                transform: scale(1.0);
-                box-shadow: 0 0 16px rgba(255, 23, 68, 0.55);
-            }
-            100% {
-                transform: scale(1.03);
-                box-shadow: 0 0 28px rgba(255, 23, 68, 0.95);
-            }
+            0% { transform: scale(1.0); box-shadow: 0 0 16px rgba(255, 23, 68, 0.7); }
+            100% { transform: scale(1.04); box-shadow: 0 0 28px rgba(255, 23, 68, 1); }
         }
-
-        #how-to-play-btn {
-            background: rgba(26, 28, 44, 0.85);
-            border: 1.5px solid rgba(255, 255, 255, 0.45);
+        #help-btn {
+            background: rgba(20, 20, 30, 0.75);
+            border: 1.5px solid rgba(255, 255, 255, 0.6);
             font-size: 16px;
-            color: #e0e0e0;
         }
-
-        .menu-btn:active {
-            transform: scale(0.94) !important;
+        .portal-btn:active {
+            transform: scale(0.93) !important;
         }
-
-        /* 遊戲說明彈窗 */
-        #modal-overlay {
+        #help-modal {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background: rgba(0, 0, 0, 0.75);
-            z-index: 20;
-            display: none;
-            justify-content: center;
-            align-items: center;
-            backdrop-filter: blur(5px);
-            -webkit-backdrop-filter: blur(5px);
-        }
-
-        #help-dialog {
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
             width: 86%;
-            max-width: 350px;
-            background: rgba(18, 20, 32, 0.96);
+            max-width: 360px;
+            background: rgba(15, 15, 25, 0.95);
             border: 2px solid #00e5ff;
-            border-radius: 20px;
-            padding: 24px 20px;
-            color: #ffffff;
+            border-radius: 18px;
+            padding: 22px 20px;
+            color: #fff;
+            display: none;
+            z-index: 100;
             box-shadow: 0 0 25px rgba(0, 229, 255, 0.4);
+            backdrop-filter: blur(10px);
         }
-
-        #help-dialog h3 {
+        #help-modal h3 {
             color: #00e5ff;
-            font-size: 21px;
-            margin-bottom: 15px;
-            text-align: center;
-            letter-spacing: 1px;
-        }
-
-        .rule-item {
-            display: flex;
-            align-items: flex-start;
             margin-bottom: 12px;
-            font-size: 14px;
-            line-height: 1.5;
-            color: #d1d5db;
+            font-size: 20px;
+            text-align: center;
         }
-
-        .rule-item span.icon {
-            margin-right: 8px;
-            font-size: 16px;
+        #help-modal p {
+            font-size: 13.5px;
+            line-height: 1.6;
+            color: #ddd;
+            margin-bottom: 8px;
         }
-
-        .rule-item b {
-            color: #ffffff;
-        }
-
-        #close-dialog-btn {
-            margin-top: 16px;
+        #close-modal {
+            margin-top: 15px;
             width: 100%;
-            padding: 12px 0;
+            padding: 10px 0;
             background: #00b0ff;
             border: none;
-            border-radius: 24px;
-            color: #ffffff;
-            font-weight: 800;
-            font-size: 16px;
+            border-radius: 20px;
+            color: #fff;
+            font-weight: bold;
+            font-size: 15px;
             cursor: pointer;
-            transition: opacity 0.1s;
-        }
-
-        #close-dialog-btn:active {
-            opacity: 0.85;
         }
     </style>
 </head>
 <body>
 
-<div id="splash-container">
-    <!-- 封面視覺圖檔：優先讀取 cover.png，若不存在則備援搜尋同資料夾圖檔 -->
-    <img id="cover-img" src="cover.png" alt="遊戲封面" onerror="handleImageFallback(this)">
+<div id="home-container">
+    <img id="cover-img" src="cover.png" alt="封面" onerror="tryNext(this)">
 
-    <div class="bottom-vignette"></div>
-
-    <div class="action-group">
-        <a id="start-btn" class="menu-btn" href="index.html">START GAME</a>
-        <div id="how-to-play-btn" class="menu-btn">HOW TO PLAY</div>
+    <div class="btn-container">
+        <div id="start-btn" class="portal-btn" onclick="startGame()">START GAME</div>
+        <div id="help-btn" class="portal-btn" onclick="openHelp()">HOW TO PLAY</div>
     </div>
 
-    <!-- 遊戲指南彈窗 -->
-    <div id="modal-overlay">
-        <div id="help-dialog">
-            <h3>🥷 忍者蚊子修練指南</h3>
-            <div class="rule-item">
-                <span class="icon">🩸</span>
-                <div><b>飢餓機制</b>：若長時間未吸血，體力會逐漸耗盡，必須迅速尋找皮膚補充！</div>
-            </div>
-            <div class="rule-item">
-                <span class="icon">🎯</span>
-                <div><b>辨識目標</b>：汲取【壽星（黑衣比讚）】精華；誤咬【胖子】將中毒扣血！</div>
-            </div>
-            <div class="rule-item">
-                <span class="icon">⚡</span>
-                <div><b>瞬移忍術</b>：推動搖桿時按瞬移可穿越掌風、閃避電蚊拍與各類陷阱。</div>
-            </div>
-            <div class="rule-item">
-                <span class="icon">💥</span>
-                <div><b>拍擊逃脫</b>：警覺度達 100% 時巨掌將合攏，看準時機以瞬移脫身！</div>
-            </div>
-            <button id="close-dialog-btn">理解，出發！</button>
-        </div>
+    <div id="help-modal">
+        <h3>🥷 忍者蚊子修練指南</h3>
+        <p>1. <b>飢餓生存</b>：未吸血時體力持續扣減，必須找皮膚吸血回血！</p>
+        <p>2. <b>目標鎖定</b>：吸【壽星（黑衣雙讚）】累積精華液；吸【胖子】會中毒扣血暴斃！</p>
+        <p>3. <b>瞬移閃避</b>：推動搖桿時按【⚡ 瞬移】，可穿透閃避掌風、電蚊拍與殺蟲劑！</p>
+        <p>4. <b>巨掌 QTE</b>：警覺度 100% 時巨掌將合圍，看準時機按瞬移逃出生天！</p>
+        <button id="close-modal" onclick="closeHelp()">我知道了！出發！</button>
     </div>
 </div>
 
 <script>
-    // 圖片載入容錯備援：若 cover.png 不存在，嘗試載入其他可能檔名
-    function handleImageFallback(imgElement) {
-        const fallbacks = ["cover.PNG", "cover.jpg", "cover.jpeg", "封面.png", "封面.jpg"];
-        const currentSrc = imgElement.getAttribute("data-try-index") || "0";
-        const tryIndex = parseInt(currentSrc, 10);
+const fallbackImages = ['cover.PNG', 'cover.jpg', 'cover.jpeg', '封面.png'];
+let fallbackIndex = 0;
 
-        if (tryIndex < fallbacks.length) {
-            imgElement.setAttribute("data-try-index", (tryIndex + 1).toString());
-            imgElement.src = fallbacks[tryIndex];
-        }
+function tryNext(img) {
+    if (fallbackIndex < fallbackImages.length) {
+        img.src = fallbackImages[fallbackIndex++];
     }
+}
 
-    const howToPlayBtn = document.getElementById("how-to-play-btn");
-    const modalOverlay = document.getElementById("modal-overlay");
-    const closeDialogBtn = document.getElementById("close-dialog-btn");
+function startGame() {
+    window.location.href = 'game.html';
+}
 
-    howToPlayBtn.addEventListener("click", () => {
-        modalOverlay.style.display = "flex";
-    });
+function openHelp() {
+    document.getElementById('help-modal').style.display = 'block';
+}
 
-    closeDialogBtn.addEventListener("click", () => {
-        modalOverlay.style.display = "none";
-    });
-
-    modalOverlay.addEventListener("click", (e) => {
-        if (e.target === modalOverlay) {
-            modalOverlay.style.display = "none";
-        }
-    });
+function closeHelp() {
+    document.getElementById('help-modal').style.display = 'none';
+}
 </script>
 </body>
 </html>
