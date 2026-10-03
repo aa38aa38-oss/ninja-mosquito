@@ -31,125 +31,7 @@
             height: 100%;
         }
 
-        /* ------------------ 開始封面首頁 ------------------ */
-        #start-screen {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background-color: #000;
-            z-index: 100;
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-end;
-            align-items: center;
-            padding-bottom: env(safe-area-inset-bottom, 50px);
-            transition: opacity 0.4s ease, visibility 0.4s;
-            overflow: hidden;
-        }
-        #cover-img {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            object-position: center;
-            z-index: 1;
-            pointer-events: none;
-        }
-        #start-screen.hidden {
-            opacity: 0;
-            visibility: hidden;
-            pointer-events: none;
-        }
-        .start-btn-group {
-            position: relative;
-            z-index: 2;
-            display: flex;
-            flex-direction: column;
-            gap: 14px;
-            width: 82%;
-            max-width: 320px;
-            margin-bottom: 30px;
-        }
-        .menu-btn {
-            width: 100%;
-            padding: 14px 0;
-            border-radius: 30px;
-            font-size: 19px;
-            font-weight: 900;
-            letter-spacing: 2px;
-            text-align: center;
-            color: #fff;
-            cursor: pointer;
-            backdrop-filter: blur(8px);
-            transition: transform 0.1s ease, box-shadow 0.15s ease;
-        }
-        #start-game-btn {
-            background: linear-gradient(135deg, #ff1744 0%, #d50000 100%);
-            border: 2px solid #ff8a80;
-            box-shadow: 0 0 20px rgba(255, 23, 68, 0.75);
-            animation: startGlow 1.4s infinite alternate;
-        }
-        @keyframes startGlow {
-            0% { transform: scale(1.0); box-shadow: 0 0 15px rgba(255, 23, 68, 0.6); }
-            100% { transform: scale(1.04); box-shadow: 0 0 28px rgba(255, 23, 68, 0.95); }
-        }
-        #help-btn {
-            background: rgba(20, 20, 30, 0.75);
-            border: 1.5px solid rgba(255, 255, 255, 0.5);
-            font-size: 16px;
-        }
-        .menu-btn:active {
-            transform: scale(0.94) !important;
-        }
-
-        /* 遊戲說明彈窗 */
-        #help-modal {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 86%;
-            max-width: 360px;
-            background: rgba(15, 15, 25, 0.95);
-            border: 2px solid #00e5ff;
-            border-radius: 18px;
-            padding: 22px 20px;
-            color: #fff;
-            display: none;
-            z-index: 110;
-            box-shadow: 0 0 25px rgba(0, 229, 255, 0.4);
-            backdrop-filter: blur(10px);
-        }
-        #help-modal h3 {
-            color: #00e5ff;
-            margin-bottom: 12px;
-            font-size: 20px;
-            text-align: center;
-        }
-        #help-modal p {
-            font-size: 13.5px;
-            line-height: 1.6;
-            color: #ddd;
-            margin-bottom: 8px;
-        }
-        #close-help-btn {
-            margin-top: 15px;
-            width: 100%;
-            padding: 10px 0;
-            background: #00b0ff;
-            border: none;
-            border-radius: 20px;
-            color: #fff;
-            font-weight: bold;
-            font-size: 15px;
-            cursor: pointer;
-        }
-
-        /* ------------------ 頂部 HUD ------------------ */
+        /* 頂部 HUD (半透明懸浮) */
         #hud {
             position: absolute;
             top: env(safe-area-inset-top, 15px);
@@ -202,7 +84,7 @@
             transition: width 0.08s linear;
         }
 
-        /* 熱區檢視切換開關 */
+        /* 右上角：熱區檢視切換開關 */
         #debug-btn {
             position: absolute;
             top: env(safe-area-inset-top, 15px);
@@ -255,7 +137,7 @@
             transition: transform 0.2s ease-out, opacity 0.3s ease-out;
         }
 
-        /* 虛擬搖桿與按鈕 */
+        /* 左半邊動態搖桿感應區 */
         #touch-left-zone {
             position: absolute;
             top: 0;
@@ -292,6 +174,7 @@
             pointer-events: none;
         }
 
+        /* 右側動作按鈕 */
         #action-container {
             position: absolute;
             right: 25px;
@@ -367,19 +250,30 @@
             text-align: center;
             line-height: 1.5;
         }
-        #retry-btn {
-            padding: 12px 36px;
-            font-size: 18px;
+        .game-over-btn-group {
+            display: flex;
+            gap: 15px;
+        }
+        .over-btn {
+            padding: 12px 30px;
+            font-size: 16px;
             font-weight: bold;
             color: #fff;
-            background: linear-gradient(135deg, #d50000, #ff5252);
-            border: 2px solid #fff;
             border-radius: 28px;
-            box-shadow: 0 0 15px rgba(255, 82, 82, 0.6);
             cursor: pointer;
             transition: transform 0.1s ease;
+            text-align: center;
         }
-        #retry-btn:active {
+        #retry-btn {
+            background: linear-gradient(135deg, #d50000, #ff5252);
+            border: 2px solid #fff;
+            box-shadow: 0 0 15px rgba(255, 82, 82, 0.6);
+        }
+        #home-btn {
+            background: rgba(40, 40, 50, 0.85);
+            border: 2px solid rgba(255, 255, 255, 0.6);
+        }
+        .over-btn:active {
             transform: scale(0.92);
         }
     </style>
@@ -388,25 +282,6 @@
 
 <div id="game-container">
     <canvas id="gameCanvas"></canvas>
-
-    <!-- 封面開始畫面 (實體 img 標籤保證載入) -->
-    <div id="start-screen">
-        <img id="cover-img" src="cover.png" alt="封面">
-        <div class="start-btn-group">
-            <div id="start-game-btn" class="menu-btn">START GAME</div>
-            <div id="help-btn" class="menu-btn">HOW TO PLAY</div>
-        </div>
-    </div>
-
-    <!-- 遊戲說明彈窗 -->
-    <div id="help-modal">
-        <h3>🥷 忍者蚊子修練指南</h3>
-        <p>1. <b>飢餓生存</b>：未吸血時體力持續扣減，必須找皮膚吸血回血！</p>
-        <p>2. <b>目標鎖定</b>：吸【壽星（黑衣雙讚）】累積精華液；吸【胖子】會中毒扣血暴斃！</p>
-        <p>3. <b>瞬移閃避</b>：推動搖桿時按【⚡ 瞬移】，可閃避揮手掌風、電蚊拍與各類雜物攻擊！</p>
-        <p>4. <b>巨掌 QTE</b>：警覺度 100% 時巨掌將合圍，看準時機按瞬移逃出生天！</p>
-        <button id="close-help-btn">我知道了！出發！</button>
-    </div>
 
     <div id="touch-left-zone"></div>
     <div id="arena-joystick">
@@ -438,10 +313,14 @@
         <div id="blink-btn" class="hud-btn">⚡ 瞬移</div>
     </div>
 
+    <!-- 死亡結算畫面 -->
     <div id="game-over-screen">
         <div id="death-title">啪！忍道終結</div>
         <div id="death-reason">壽星神掌從天而降，你被拍成了肉餅...</div>
-        <div id="retry-btn">重新挑戰</div>
+        <div class="game-over-btn-group">
+            <div id="retry-btn" class="over-btn">再試一次</div>
+            <div id="home-btn" class="over-btn">回首頁</div>
+        </div>
     </div>
 </div>
 
@@ -494,8 +373,8 @@ const mosquito = {
     invincibleTimer: 0
 };
 
-// 遊戲狀態：一開始在選單封面上
-let isGameStarted = false;
+// 進入 index.html 即為直接開始遊戲
+let isGameStarted = true;
 
 let essence = 0;
 let health = 100;
@@ -523,27 +402,6 @@ let qteTimer = 0;
 let slapHandsDist = 1.0;
 let deathAnimTimer = 0;
 let soulY = 0;
-
-// 開始畫面按鈕事件
-const startScreen = document.getElementById("start-screen");
-const startGameBtn = document.getElementById("start-game-btn");
-const helpBtn = document.getElementById("help-btn");
-const helpModal = document.getElementById("help-modal");
-const closeHelpBtn = document.getElementById("close-help-btn");
-
-startGameBtn.addEventListener("click", () => {
-    startScreen.classList.add("hidden");
-    isGameStarted = true;
-    resetGame();
-});
-
-helpBtn.addEventListener("click", () => {
-    helpModal.style.display = "block";
-});
-
-closeHelpBtn.addEventListener("click", () => {
-    helpModal.style.display = "none";
-});
 
 document.getElementById("debug-btn").addEventListener("click", () => {
     showDebugBoxes = !showDebugBoxes;
@@ -579,6 +437,9 @@ function resetGame() {
 }
 
 document.getElementById("retry-btn").addEventListener("click", resetGame);
+document.getElementById("home-btn").addEventListener("click", () => {
+    window.location.href = "home.html";
+});
 
 function getCharacterAreas() {
     return [
@@ -616,7 +477,7 @@ let joyOrigin = { x: 0, y: 0 };
 let currentTouchId = null;
 
 function onJoyStart(clientX, clientY, touchId = null) {
-    if (mosquito.isDead || !isGameStarted) return;
+    if (mosquito.isDead) return;
     joyActive = true;
     currentTouchId = touchId;
     joyOrigin = { x: clientX, y: clientY };
@@ -628,7 +489,7 @@ function onJoyStart(clientX, clientY, touchId = null) {
 }
 
 function onJoyMove(clientX, clientY) {
-    if (!joyActive || mosquito.isDead || !isGameStarted) return;
+    if (!joyActive || mosquito.isDead) return;
     let dx = clientX - joyOrigin.x;
     let dy = clientY - joyOrigin.y;
     const dist = Math.hypot(dx, dy);
@@ -651,13 +512,13 @@ function onJoyEnd() {
 
 leftZone.addEventListener("touchstart", (e) => {
     e.preventDefault();
-    if (joyActive || mosquito.isDead || !isGameStarted) return;
+    if (joyActive || mosquito.isDead) return;
     const t = e.changedTouches[0];
     onJoyStart(t.clientX, t.clientY, t.identifier);
 }, { passive: false });
 
 window.addEventListener("touchmove", (e) => {
-    if (!joyActive || mosquito.isDead || !isGameStarted) return;
+    if (!joyActive || mosquito.isDead) return;
     for (let t of e.touches) {
         if (t.identifier === currentTouchId) {
             onJoyMove(t.clientX, t.clientY);
@@ -684,7 +545,7 @@ const suckBtn = document.getElementById("suck-btn");
 const blinkBtn = document.getElementById("blink-btn");
 
 function startSuck() {
-    if (mosquito.isDead || !isGameStarted) return;
+    if (mosquito.isDead) return;
     isSucking = true;
     suckBtn.classList.add("pressed");
 }
@@ -712,7 +573,7 @@ function showDodgeEffect() {
 
 function triggerBlink(e) {
     if (e && e.preventDefault) e.preventDefault();
-    if (blinkCooldown <= 0 && !mosquito.isDead && isGameStarted) {
+    if (blinkCooldown <= 0 && !mosquito.isDead) {
         blinkCooldown = 2.0;
         stopSuck();
 
@@ -850,12 +711,6 @@ let suckTick = 0;
 function gameLoop(now) {
     const dt = (now - lastTime) / 1000;
     lastTime = now;
-
-    if (!isGameStarted) {
-        render(null, now);
-        requestAnimationFrame(gameLoop);
-        return;
-    }
 
     if (hurtFlashTimer > 0) hurtFlashTimer -= dt;
     if (mosquito.invincibleTimer > 0) mosquito.invincibleTimer -= dt;
