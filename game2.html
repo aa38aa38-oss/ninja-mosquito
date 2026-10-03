@@ -6,11 +6,39 @@
     <title>忍者蚊子 - 最終任務：把力維吸乾！</title>
     <style>
         * { box-sizing: border-box; user-select: none; -webkit-user-select: none; margin: 0; padding: 0; }
-        body, html { width: 100%; height: 100%; overflow: hidden; background-color: #000; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-        #game-container { position: relative; width: 100vw; height: 100vh; overflow: hidden; }
+        body, html {
+            width: 100%;
+            height: 100%;
+            height: 100vh;
+            height: 100dvh;
+            overflow: hidden;
+            position: fixed;
+            top: 0;
+            left: 0;
+            background-color: #000;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100%;
+            height: 100vh;
+            height: 100dvh;
+            overflow: hidden;
+        }
         canvas { display: block; width: 100%; height: 100%; }
 
-        #hud { position: absolute; top: env(safe-area-inset-top, 15px); left: 20px; width: 280px; max-width: 65vw; color: #fff; text-shadow: 2px 2px 4px #000; pointer-events: none; z-index: 30; }
+        #hud {
+            position: absolute;
+            top: max(15px, env(safe-area-inset-top, 15px));
+            left: max(15px, env(safe-area-inset-left, 15px));
+            width: 280px;
+            max-width: 65vw;
+            color: #fff;
+            text-shadow: 2px 2px 4px #000;
+            pointer-events: none;
+            z-index: 30;
+        }
         #status-text { font-size: 15px; font-weight: bold; color: #ffeb3b; margin-bottom: 6px; white-space: nowrap; }
         .bar-container { margin-bottom: 4px; }
         .bar-label { font-size: 11px; margin-bottom: 2px; color: #ddd; }
@@ -19,35 +47,90 @@
         #health-bar { width: 100%; height: 100%; background: linear-gradient(90deg, #43a047, #76ff03); transition: width 0.08s ease-out; }
         #alert-bar { width: 0%; height: 100%; background: linear-gradient(90deg, #ff9100, #d50000); transition: width 0.08s linear; }
 
-        #dialog-modal { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 86%; max-width: 380px; background: rgba(25, 15, 35, 0.96); border: 2px solid #e040fb; border-radius: 18px; padding: 22px 20px; color: #fff; display: flex; flex-direction: column; align-items: center; z-index: 90; box-shadow: 0 0 25px rgba(224, 64, 251, 0.45); backdrop-filter: blur(10px); }
+        #dialog-modal {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 86%;
+            max-width: 380px;
+            max-height: 82dvh;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            background: rgba(25, 15, 35, 0.96);
+            border: 2px solid #e040fb;
+            border-radius: 18px;
+            padding: 22px 20px;
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            z-index: 90;
+            box-shadow: 0 0 25px rgba(224, 64, 251, 0.45);
+            backdrop-filter: blur(10px);
+        }
         #dialog-title { color: #e040fb; font-size: 19px; font-weight: 900; margin-bottom: 12px; text-align: center; }
         #dialog-content { font-size: 15px; line-height: 1.6; color: #eee; margin-bottom: 18px; text-align: center; white-space: pre-line; }
         .dialog-btn-group { display: flex; gap: 12px; justify-content: center; width: 100%; }
-        .dialog-action-btn { padding: 10px 24px; background: linear-gradient(135deg, #d500f9, #aa00ff); border: none; border-radius: 22px; color: #fff; font-size: 15px; font-weight: bold; cursor: pointer; box-shadow: 0 0 12px rgba(213, 0, 249, 0.6); pointer-events: auto; }
+        .dialog-action-btn { padding: 10px 24px; background: linear-gradient(135deg, #d500f9, #aa00ff); border: none; border-radius: 22px; color: #fff; font-size: 15px; font-weight: bold; cursor: pointer; box-shadow: 0 0 12px rgba(213, 0, 249, 0.6); pointer-events: auto; touch-action: manipulation; }
 
         #qte-overlay { position: absolute; top: 25%; left: 50%; transform: translate(-50%, -50%); color: #ff1744; font-size: 26px; font-weight: 900; text-shadow: 0 0 10px #000, 0 0 20px #ff1744; display: none; z-index: 45; pointer-events: none; animation: pulse 0.15s infinite alternate; text-align: center; }
         @keyframes pulse { 0% { transform: translate(-50%, -50%) scale(1.0); } 100% { transform: translate(-50%, -50%) scale(1.15); } }
         #dodge-popup { position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%) scale(0.8); color: #00e5ff; font-size: 32px; font-weight: 900; font-style: italic; text-shadow: 0 0 10px #000, 0 0 20px #00e5ff; display: none; z-index: 48; pointer-events: none; transition: transform 0.2s ease-out, opacity 0.3s ease-out; }
 
-        #touch-left-zone { position: absolute; top: 0; left: 0; width: 55vw; height: 100vh; z-index: 10; touch-action: none; }
+        #touch-left-zone {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 55vw;
+            height: 100%;
+            height: 100dvh;
+            z-index: 10;
+            touch-action: none;
+        }
         #arena-joystick { position: absolute; width: 140px; height: 140px; margin-left: -70px; margin-top: -70px; border-radius: 50%; background: radial-gradient(circle, rgba(255, 255, 255, 0.08) 0%, rgba(0, 0, 0, 0.45) 80%); border: 2px solid rgba(255, 255, 255, 0.3); box-shadow: 0 0 15px rgba(0, 0, 0, 0.6); pointer-events: none; display: none; z-index: 15; }
         #arena-knob { position: absolute; width: 56px; height: 56px; top: 42px; left: 42px; border-radius: 50%; background: radial-gradient(circle, rgba(255, 255, 255, 0.9) 0%, rgba(200, 200, 200, 0.6) 100%); border: 2px solid rgba(255, 255, 255, 0.8); box-shadow: 0 0 12px rgba(255, 255, 255, 0.5); pointer-events: none; }
 
-        #arena-action-pad { position: absolute; right: 15px; bottom: 20px; width: 220px; height: 220px; z-index: 25; touch-action: none; pointer-events: none; }
-        #suck-btn { position: absolute; right: 15px; bottom: 15px; width: 86px; height: 86px; border-radius: 50%; background: radial-gradient(circle, rgba(229, 57, 53, 0.9) 0%, rgba(183, 28, 28, 0.95) 100%); border: 3px solid rgba(255, 138, 128, 0.85); box-shadow: 0 0 20px rgba(211, 47, 47, 0.7); color: #fff; font-size: 17px; font-weight: 900; display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; pointer-events: auto; transition: transform 0.08s ease; }
+        #arena-action-pad {
+            position: absolute;
+            right: max(15px, env(safe-area-inset-right, 15px));
+            bottom: max(20px, calc(env(safe-area-inset-bottom, 0px) + 16px));
+            width: 220px;
+            height: 220px;
+            z-index: 25;
+            touch-action: none;
+            pointer-events: none;
+        }
+        #suck-btn { position: absolute; right: 15px; bottom: 15px; width: 86px; height: 86px; border-radius: 50%; background: radial-gradient(circle, rgba(229, 57, 53, 0.9) 0%, rgba(183, 28, 28, 0.95) 100%); border: 3px solid rgba(255, 138, 128, 0.85); box-shadow: 0 0 20px rgba(211, 47, 47, 0.7); color: #fff; font-size: 17px; font-weight: 900; display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; pointer-events: auto; transition: transform 0.08s ease; touch-action: manipulation; }
         #suck-btn:active, #suck-btn.pressed { transform: scale(0.92); background: radial-gradient(circle, rgba(255, 23, 68, 1) 0%, rgba(213, 0, 0, 1) 100%); }
-        .skill-btn { position: absolute; width: 58px; height: 58px; border-radius: 50%; color: #fff; font-size: 12px; font-weight: bold; display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; pointer-events: auto; backdrop-filter: blur(4px); transition: transform 0.08s ease, filter 0.2s ease; }
+        .skill-btn { position: absolute; width: 58px; height: 58px; border-radius: 50%; color: #fff; font-size: 12px; font-weight: bold; display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; pointer-events: auto; backdrop-filter: blur(4px); transition: transform 0.08s ease, filter 0.2s ease; touch-action: manipulation; }
         .skill-btn:active { transform: scale(0.9); }
         #blink-btn { right: 110px; bottom: 30px; background: radial-gradient(circle, rgba(0, 176, 255, 0.85) 0%, rgba(0, 145, 234, 0.95) 100%); border: 2px solid rgba(128, 222, 234, 0.9); box-shadow: 0 0 14px rgba(0, 176, 255, 0.6); }
         #stealth-btn { right: 105px; bottom: 105px; background: radial-gradient(circle, rgba(156, 39, 176, 0.85) 0%, rgba(106, 27, 154, 0.95) 100%); border: 2px solid rgba(206, 147, 216, 0.9); box-shadow: 0 0 14px rgba(156, 39, 176, 0.6); }
         #frenzy-btn { right: 30px; bottom: 115px; background: radial-gradient(circle, rgba(255, 111, 0, 0.85) 0%, rgba(230, 81, 0, 0.95) 100%); border: 2px solid rgba(255, 183, 77, 0.9); box-shadow: 0 0 14px rgba(255, 111, 0, 0.6); }
         .skill-locked { filter: grayscale(1); opacity: 0.55 !important; cursor: not-allowed; }
 
-        #game-over-screen { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.88); display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 95; color: #fff; backdrop-filter: blur(5px); }
+        #game-over-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100%;
+            height: 100vh;
+            height: 100dvh;
+            background: rgba(0, 0, 0, 0.88);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 95;
+            color: #fff;
+            backdrop-filter: blur(5px);
+        }
         #death-title { font-size: 38px; font-weight: 900; color: #ff1744; letter-spacing: 2px; margin-bottom: 12px; }
         #death-reason { font-size: 16px; color: #eee; margin-bottom: 25px; max-width: 80%; text-align: center; line-height: 1.5; }
         .game-over-btn-group { display: flex; gap: 15px; }
-        .over-btn { padding: 12px 30px; font-size: 16px; font-weight: bold; color: #fff; border-radius: 28px; cursor: pointer; transition: transform 0.1s ease; text-align: center; }
+        .over-btn { padding: 12px 30px; font-size: 16px; font-weight: bold; color: #fff; border-radius: 28px; cursor: pointer; transition: transform 0.1s ease; text-align: center; touch-action: manipulation; }
         #retry-btn { background: linear-gradient(135deg, #d50000, #ff5252); border: 2px solid #fff; box-shadow: 0 0 15px rgba(255, 82, 82, 0.6); }
         #home-btn { background: rgba(40, 40, 50, 0.85); border: 2px solid rgba(255, 255, 255, 0.6); }
     </style>
@@ -75,7 +158,7 @@
         <div id="arena-knob"></div>
     </div>
 
-    <div id="qte-overlay">⚠️ 巨掌合圍！按【瞬移⚡】閃避！</div>
+    <div id="qte-overlay">⚠ 巨掌合圍！按【瞬移⚡】閃避！</div>
     <div id="dodge-popup">⚡ DODGE! 完美閃避！</div>
 
     <div id="hud">
@@ -127,8 +210,14 @@
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
-function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+}
 window.addEventListener("resize", resize);
+window.addEventListener("orientationchange", () => {
+    setTimeout(resize, 100);
+});
 resize();
 
 const assets = {
@@ -445,14 +534,13 @@ function triggerStealth(e) {
 stealthBtn.addEventListener("click", triggerStealth);
 stealthBtn.addEventListener("touchstart", triggerStealth, { passive: false });
 
-// 奧義發動：持續時間縮短為 1.8 秒
 function triggerFrenzy(e) {
     if (e && e.preventDefault) e.preventDefault();
     if (!hasLearnedFrenzy) return;
     if (frenzyCooldown <= 0 && frenzyActiveTimer <= 0 && !mosquito.isDead && !isPausedForDialog) {
         frenzyCooldown = 11.0;
-        frenzyStartupTimer = 0.3; // 結印時間微調至 0.3 秒
-        frenzyActiveTimer = 1.8;   // 奧義總持續時間設為 1.8 秒
+        frenzyStartupTimer = 0.3;
+        frenzyActiveTimer = 1.8;
         mosquito.invincibleTimer = 1.8;
 
         mosquito.x = 1228;
@@ -729,7 +817,7 @@ function updateGame(dt, now) {
                 showAllCompleteDialog();
             }
 
-            statusText.innerText = isFrenzyActive ? `🌪️ 【影分身狂吸中】匿蹤吸取壽星精華液中！` : `🩸 汲取【${currentTarget.name}】精華液中！`;
+            statusText.innerText = isFrenzyActive ? `🌪️️ 【影分身狂吸中】匿蹤吸取壽星精華液中！` : `🩸 汲取【${currentTarget.name}】精華液中！`;
             statusText.style.color = "#ff1744";
 
             if (Math.random() < 0.6) _spawnBlood(mosquito.facingRight ? 11 : -11, 16, true);

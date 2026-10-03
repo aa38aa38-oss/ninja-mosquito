@@ -14,8 +14,10 @@
   html, body {
     margin: 0;
     padding: 0;
-    width: 100vw;
+    width: 100%;
+    height: 100%;
     height: 100vh;
+    height: 100dvh;
     overflow: hidden;
     position: fixed;
     top: 0;
@@ -28,13 +30,15 @@
     justify-content: center;
   }
 
-  /* 開場感謝對話框 */
+  /* 開場感謝對話框：限制高度防止被工具列壓縮 */
   #intro-modal {
     position: absolute;
     top: 0;
     left: 0;
     width: 100vw;
+    height: 100%;
     height: 100vh;
+    height: 100dvh;
     background: rgba(0, 0, 0, 0.88);
     display: flex;
     align-items: center;
@@ -52,6 +56,9 @@
     color: #fff;
     max-width: 440px;
     width: 88%;
+    max-height: 85dvh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
     box-shadow: 0 0 30px rgba(243, 156, 18, 0.6);
     display: flex;
     flex-direction: column;
@@ -110,7 +117,9 @@
     top: 0;
     left: 0;
     width: 100vw;
+    height: 100%;
     height: 100vh;
+    height: 100dvh;
     overflow: hidden;
     display: flex;
     justify-content: center;
@@ -118,7 +127,7 @@
     background: #000;
   }
 
-  /* 捲動速度大幅加快至 3.6 秒 */
+  /* 捲動速度設定為 3.6 秒 */
   #credits-track {
     position: absolute;
     top: 100%;
@@ -151,9 +160,9 @@
   }
 
   .game-title {
-    font-size: 46px;
+    font-size: 42px;
     font-weight: 900;
-    letter-spacing: 4px;
+    letter-spacing: 3px;
     color: #f1c40f;
     text-shadow: 0 0 20px rgba(241, 196, 15, 0.8), 3px 3px 0 #c0392b;
     margin-bottom: 50px;
@@ -164,13 +173,13 @@
     flex-direction: row;
     align-items: baseline;
     justify-content: center;
-    gap: 24px;
+    gap: 20px;
     margin-bottom: 30px;
     white-space: nowrap;
   }
 
   .role-title {
-    font-size: 26px;
+    font-size: 24px;
     font-weight: 600;
     color: #bdc3c7;
     letter-spacing: 3px;
@@ -178,7 +187,7 @@
   }
 
   .name-text {
-    font-size: 34px;
+    font-size: 32px;
     font-weight: 900;
     color: #ffffff;
     letter-spacing: 2px;
@@ -191,7 +200,9 @@
     top: 0;
     left: 0;
     width: 100vw;
+    height: 100%;
     height: 100vh;
+    height: 100dvh;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -217,12 +228,13 @@
     box-shadow: 0 0 35px rgba(0, 0, 0, 0.95);
   }
 
+  /* 返回主選單按鈕：動態避讓 Safari 網址列、iPhone 小黑條及 Android 虛擬導航列 */
   .home-btn {
     position: absolute;
-    bottom: 24px;
-    right: 24px;
+    bottom: max(24px, calc(env(safe-area-inset-bottom, 0px) + 16px));
+    right: max(24px, calc(env(safe-area-inset-right, 0px) + 16px));
     padding: 12px 26px;
-    background: rgba(30, 39, 46, 0.85);
+    background: rgba(30, 39, 46, 0.88);
     border: 2px solid #f39c12;
     border-radius: 30px;
     color: #f1c40f;
