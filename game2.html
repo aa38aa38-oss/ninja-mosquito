@@ -131,7 +131,6 @@ function resize() { canvas.width = window.innerWidth; canvas.height = window.inn
 window.addEventListener("resize", resize);
 resize();
 
-// 載入所有圖片素材
 const assets = {
     bg: new Image(),
     fly1: new Image(),
@@ -148,12 +147,10 @@ const assets = {
     shadow2_alt: new Image()
 };
 
-// 嚴格安全圖檔檢查
 function isImgReady(img) {
     return img && img.complete && img.naturalWidth > 0;
 }
 
-// 絕對安全繪製，徹底防範 Canvas 崩潰
 function drawSafe(img, x, y, w, h) {
     if (isImgReady(img)) {
         try {
@@ -280,7 +277,7 @@ function showUnlockFrenzyDialog() {
     isPausedForDialog = true;
     dialogStep = "UNLOCK_FRENZY";
     dialogTitle.innerText = "⚡ 領悟最終奧義！";
-    dialogContent.innerText = "壽星精華液達到 10%！\n你已學會【奧義·大吸特吸🌪️】！\n按下後直接瞬移至壽星身邊自動吸血 3 秒，且完全不增加暴露值！";
+    dialogContent.innerText = "壽星精華液達到 10%！\n你已學會【奧義·大吸特吸🌪️】！\n按下後直接瞬移至壽星身邊自動吸血 1.8 秒，且完全不增加暴露值！";
     dialogBtn1.innerText = "大吸特吸！";
     dialogModal.style.display = "flex";
 }
@@ -340,7 +337,7 @@ function updateSkillsUI() {
         frenzyBtn.innerHTML = `<span>🔒</span><span style="font-size:10px;">狂吸</span>`;
     } else {
         frenzyBtn.classList.remove("skill-locked");
-        if (frenzyActiveTimer > 0) { frenzyBtn.innerHTML = `<span>🌪️️</span><span style="font-size:10px;">${frenzyActiveTimer.toFixed(1)}s</span>`; frenzyBtn.style.filter = "drop-shadow(0 0 10px #ff1744)"; }
+        if (frenzyActiveTimer > 0) { frenzyBtn.innerHTML = `<span>🌪️</span><span style="font-size:10px;">${frenzyActiveTimer.toFixed(1)}s</span>`; frenzyBtn.style.filter = "drop-shadow(0 0 10px #ff1744)"; }
         else if (frenzyCooldown <= 0) { frenzyBtn.innerHTML = `<span>🌪️</span><span style="font-size:10px;">大吸特吸</span>`; frenzyBtn.style.opacity = "1"; frenzyBtn.style.filter = "none"; }
         else { frenzyBtn.innerHTML = `<span>${frenzyCooldown.toFixed(1)}</span>`; frenzyBtn.style.opacity = "0.6"; frenzyBtn.style.filter = "none"; }
     }
@@ -448,19 +445,18 @@ function triggerStealth(e) {
 stealthBtn.addEventListener("click", triggerStealth);
 stealthBtn.addEventListener("touchstart", triggerStealth, { passive: false });
 
-// 奧義發動：精確瞬移至壽星中心點 (1228, 382)，相機同步對齊
+// 奧義發動：持續時間縮短為 1.8 秒
 function triggerFrenzy(e) {
     if (e && e.preventDefault) e.preventDefault();
     if (!hasLearnedFrenzy) return;
     if (frenzyCooldown <= 0 && frenzyActiveTimer <= 0 && !mosquito.isDead && !isPausedForDialog) {
         frenzyCooldown = 11.0;
-        frenzyStartupTimer = 0.4;
-        frenzyActiveTimer = 3.4;
-        mosquito.invincibleTimer = 3.4;
+        frenzyStartupTimer = 0.3; // 結印時間微調至 0.3 秒
+        frenzyActiveTimer = 1.8;   // 奧義總持續時間設為 1.8 秒
+        mosquito.invincibleTimer = 1.8;
 
         mosquito.x = 1228;
         mosquito.y = 382;
-        // 相機立即對齊，不遺留殘影
         camera.x = mosquito.x - (canvas.width / 2) / camera.zoom;
         camera.y = mosquito.y - (canvas.height / 2) / camera.zoom;
 
@@ -563,7 +559,6 @@ function spawnBloodPack() {
 let lastTime = performance.now();
 let suckTick = 0;
 
-// 遊戲更新主邏輯
 function updateGame(dt, now) {
     if (isPausedForDialog) { render(null, now); return; }
 
@@ -667,7 +662,7 @@ function updateGame(dt, now) {
     for (let i = hazards.length - 1; i >= 0; i--) {
         let h = hazards[i];
         if (h.type === "SWAT") {
-            if (h.warnTimer > 0) h.warnTimer -= dt;
+            if (h.warnTimer > 0) { h.warnTimer -= dt; }
             else if (h.strikeTimer > 0) { h.strikeTimer -= dt; if (!h.struck && mosquito.invincibleTimer <= 0 && Math.abs(mosquito.x - h.x) < h.width / 2 && Math.abs(mosquito.y - h.y) < h.height / 2) { h.struck = true; health = Math.max(0, health - 55); hurtFlashTimer = 0.3; if (health <= 0) triggerDeath("ZAPPED"); } }
             else hazards.splice(i, 1);
         } else if (h.type === "COIL") {
@@ -749,7 +744,7 @@ function updateGame(dt, now) {
         }
     } else {
         if (!qteActive && hurtFlashTimer <= 0) {
-            if (windWaveWarning) { statusText.innerText = `⚠️️ 掌風襲來預警！準備按【瞬移】或【隱身】閃避！`; statusText.style.color = "#ff1744"; }
+            if (windWaveWarning) { statusText.innerText = `⚠️ 掌風襲來預警！準備按【瞬移】或【隱身】閃避！`; statusText.style.color = "#ff1744"; }
             else if (currentTarget) {
                 if (currentTarget.category === "BIRTHDAY_BOY") { statusText.innerText = `🟢 鎖定壽星部位：${currentTarget.name} (按住吸血)`; statusText.style.color = "#76ff03"; }
                 else if (currentTarget.category === "FAT_MAN") { statusText.innerText = `⚠️ 這是大胖子！有劇毒千萬別吸！`; statusText.style.color = "#ff5252"; }
@@ -765,7 +760,6 @@ function updateGame(dt, now) {
     render(currentTarget, now);
 }
 
-// 永不崩潰的防護型主迴圈
 function gameLoop(now) {
     const dt = (now - lastTime) / 1000;
     lastTime = now;
@@ -793,7 +787,6 @@ function render(currentTarget, timestamp) {
     ctx.scale(camera.zoom, camera.zoom); ctx.translate(-camera.x + shakeX, -camera.y + shakeY);
     drawSafe(assets.bg, 0, 0, worldWidth, worldHeight);
 
-    // 青蛙
     for (let f of frogs) {
         ctx.save();
         if (f.state === "AIM") {
@@ -838,7 +831,6 @@ function render(currentTarget, timestamp) {
         ctx.restore();
     }
 
-    // 麻雀
     for (let b of birds) {
         ctx.save();
         if (b.warnTimer > 0) {
@@ -886,7 +878,6 @@ function render(currentTarget, timestamp) {
         ctx.restore();
     }
 
-    // 飛行血包
     for (let bp of bloodPacks) {
         ctx.save(); ctx.translate(bp.x, bp.y);
         const wingFlap = Math.sin(bp.floatPhase * 2.5) * 6;
@@ -896,7 +887,6 @@ function render(currentTarget, timestamp) {
         ctx.font = "bold 10px sans-serif"; ctx.fillStyle = "#76ff03"; ctx.textAlign = "center"; ctx.fillText("+35 HP", 0, -18); ctx.restore();
     }
 
-    // 電蚊拍與蚊香
     for (let h of hazards) {
         ctx.save();
         if (h.type === "SWAT") {
@@ -908,7 +898,6 @@ function render(currentTarget, timestamp) {
         ctx.restore();
     }
 
-    // 掌風警戒
     if (windWaveWarning) {
         ctx.save(); const curTime = timestamp || performance.now(); const pulseAlpha = 0.25 + Math.sin(curTime / 100) * 0.15;
         ctx.fillStyle = `rgba(255, 23, 68, ${pulseAlpha})`; ctx.fillRect(mosquito.x - 120, 0, 90, worldHeight);
@@ -924,7 +913,6 @@ function render(currentTarget, timestamp) {
     for (let s of blinkShadows) { ctx.save(); ctx.translate(s.x, s.y); if (s.facingRight) ctx.scale(1, 1); else ctx.scale(-1, 1); ctx.globalAlpha = s.alpha * 0.6; drawSafe(assets.fly1, -mosquito.size / 2, -mosquito.size / 2, mosquito.size, mosquito.size); ctx.restore(); }
     for (let p of bloodParticles) { ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2); ctx.fillStyle = p.color ? p.color : `rgba(220, 20, 60, ${p.alpha})`; ctx.fill(); }
 
-    // 繪製蚊子角色本體
     ctx.save();
     ctx.translate(mosquito.x, mosquito.y);
     const curTime = timestamp || performance.now();
@@ -945,15 +933,13 @@ function render(currentTarget, timestamp) {
     } else {
         if (mosquito.facingRight) ctx.scale(1, 1); else ctx.scale(-1, 1);
 
-        // 奧義階段 1：結印 (全安全保底，絕不隱形)
         if (frenzyStartupTimer > 0) {
-            let startupImg = frenzyStartupTimer > 0.2 ? 
+            let startupImg = frenzyStartupTimer > 0.15 ? 
                 (isImgReady(assets.shadow1) ? assets.shadow1 : (isImgReady(assets.shadow1_alt) ? assets.shadow1_alt : null)) :
                 (isImgReady(assets.shadow2) ? assets.shadow2 : (isImgReady(assets.shadow2_alt) ? assets.shadow2_alt : null));
             let drawImg = startupImg || (isImgReady(assets.suck) ? assets.suck : assets.fly1);
             drawSafe(drawImg, -mosquito.size / 2 - 4, -mosquito.size / 2 - 8, mosquito.size + 8, mosquito.size + 8);
         } 
-        // 奧義階段 2：三隻影分身吸血 (絕不崩壞)
         else if (frenzyActiveTimer > 0) {
             ctx.shadowColor = "#ff1744";
             ctx.shadowBlur = 12;
