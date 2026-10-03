@@ -19,8 +19,6 @@
         #health-bar { width: 100%; height: 100%; background: linear-gradient(90deg, #43a047, #76ff03); transition: width 0.08s ease-out; }
         #alert-bar { width: 0%; height: 100%; background: linear-gradient(90deg, #ff9100, #d50000); transition: width 0.08s linear; }
 
-        #debug-btn { position: absolute; top: env(safe-area-inset-top, 15px); right: 20px; padding: 6px 12px; background: rgba(0, 0, 0, 0.6); border: 1px solid rgba(255, 255, 255, 0.5); border-radius: 14px; color: #fff; font-size: 12px; z-index: 35; cursor: pointer; }
-
         #dialog-modal { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 86%; max-width: 380px; background: rgba(25, 15, 35, 0.96); border: 2px solid #e040fb; border-radius: 18px; padding: 22px 20px; color: #fff; display: flex; flex-direction: column; align-items: center; z-index: 90; box-shadow: 0 0 25px rgba(224, 64, 251, 0.45); backdrop-filter: blur(10px); }
         #dialog-title { color: #e040fb; font-size: 19px; font-weight: 900; margin-bottom: 12px; text-align: center; }
         #dialog-content { font-size: 15px; line-height: 1.6; color: #eee; margin-bottom: 18px; text-align: center; white-space: pre-line; }
@@ -77,7 +75,6 @@
         <div id="arena-knob"></div>
     </div>
 
-    <div id="debug-btn">👁 顯示熱區</div>
     <div id="qte-overlay">⚠️ 巨掌合圍！按【瞬移⚡】閃避！</div>
     <div id="dodge-popup">⚡ DODGE! 完美閃避！</div>
 
@@ -151,7 +148,6 @@ const assets = {
     shadow2: new Image()
 };
 
-// 背景圖副檔名自動備援機制（避免副檔名大小寫或 png/jpg 差異卡死）
 const bgCandidates = ["bg_level2.png", "bg_level2.jpg", "bg_level2.jpeg", "bg_level2.PNG", "bg_level2.JPG"];
 let bgCandidateIdx = 0;
 
@@ -190,7 +186,6 @@ function initGameOnce() {
 }
 
 assets.bg.onload = initGameOnce;
-// 300ms 保底超時，若圖片找不到也直接啟動，絕不卡死
 setTimeout(initGameOnce, 300);
 
 const camera = { x: 0, y: 0, zoom: 2.6 };
@@ -215,7 +210,6 @@ let bloodParticles = [];
 let blinkShadows = [];
 let featherParticles = [];
 let smokeParticles = [];
-let showDebugBoxes = false;
 
 let hazards = [];
 let hazardSpawnTimer = 0;
@@ -285,11 +279,6 @@ function showAllCompleteDialog() {
     dialogModal.style.display = "flex";
 }
 
-document.getElementById("debug-btn").addEventListener("click", () => {
-    showDebugBoxes = !showDebugBoxes;
-    document.getElementById("debug-btn").innerText = showDebugBoxes ? "關閉熱區" : "👁 顯示熱區";
-});
-
 function resetGame() {
     mosquito.x = 1228; mosquito.y = 382; mosquito.isDead = false; mosquito.deathType = ""; mosquito.invincibleTimer = 0;
     essence = 0; health = 100; alertVal = 0; isSucking = false;
@@ -331,7 +320,7 @@ function updateSkillsUI() {
 
     if (!hasLearnedFrenzy) {
         frenzyBtn.classList.add("skill-locked");
-        frenzyBtn.innerHTML = `<span>🔒</span><span style="font-size:10px;">奧義</span>`;
+        frenzyBtn.innerHTML = `<span>🔒</span><span style="font-size:10px;">狂吸</span>`;
     } else {
         frenzyBtn.classList.remove("skill-locked");
         if (frenzyActiveTimer > 0) { frenzyBtn.innerHTML = `<span>🌪️</span><span style="font-size:10px;">${frenzyActiveTimer.toFixed(1)}s</span>`; frenzyBtn.style.filter = "drop-shadow(0 0 10px #ff1744)"; }
@@ -584,7 +573,6 @@ function gameLoop(now) {
     poisonSpawnTimer += dt; if (poisonSpawnTimer > 4.5) { if (poisons.length < 2) spawnPoison(); poisonSpawnTimer = 0; }
     bloodPackSpawnTimer += dt; if (bloodPackSpawnTimer > 5.5) { if (bloodPacks.length < 3) spawnBloodPack(); bloodPackSpawnTimer = 0; }
 
-    // 1. 青蛙邏輯
     for (let i = frogs.length - 1; i >= 0; i--) {
         let f = frogs[i];
         f.timer -= dt;
@@ -608,7 +596,6 @@ function gameLoop(now) {
         }
     }
 
-    // 2. 麻雀邏輯
     for (let i = birds.length - 1; i >= 0; i--) {
         let b = birds[i];
         if (b.warnTimer > 0) {
@@ -643,7 +630,6 @@ function gameLoop(now) {
         }
     }
 
-    // 3. 殺蟲液邏輯
     for (let i = poisons.length - 1; i >= 0; i--) {
         let p = poisons[i];
         p.timer -= dt;
@@ -666,7 +652,6 @@ function gameLoop(now) {
         }
     }
 
-    // 飛行血包
     for (let i = bloodPacks.length - 1; i >= 0; i--) {
         let bp = bloodPacks[i]; bp.life -= dt; bp.floatPhase += dt * 4; bp.x += bp.vx * dt; bp.y += (bp.vy + Math.sin(bp.floatPhase) * 20) * dt;
         if (bp.x < 30) { bp.x = 30; bp.vx = Math.abs(bp.vx); } if (bp.x > worldWidth - 30) { bp.x = worldWidth - 30; bp.vx = -Math.abs(bp.vx); }
@@ -675,7 +660,6 @@ function gameLoop(now) {
         if (bp.life <= 0) bloodPacks.splice(i, 1);
     }
 
-    // 電蚊拍與蚊香
     for (let i = hazards.length - 1; i >= 0; i--) {
         let h = hazards[i];
         if (h.type === "SWAT") {
@@ -716,7 +700,6 @@ function gameLoop(now) {
     const currentTarget = getCurrentTarget();
     const statusText = document.getElementById("status-text");
 
-    // 吸血邏輯
     if (isSucking) {
         suckTick += dt * 18;
         if (!currentTarget) { statusText.innerText = "❌ 咬到衣服或紙張！無法吸血"; statusText.style.color = "#bbb"; }
@@ -792,21 +775,6 @@ function render(currentTarget, timestamp) {
     ctx.scale(camera.zoom, camera.zoom); ctx.translate(-camera.x + shakeX, -camera.y + shakeY);
     if (assets.bg.complete) ctx.drawImage(assets.bg, 0, 0, worldWidth, worldHeight);
 
-    if (showDebugBoxes) {
-        for (let a of getCharacterAreas()) {
-            ctx.save();
-            ctx.fillStyle = a.category === "BIRTHDAY_BOY" ? "rgba(76, 175, 80, 0.28)" : (a.category === "FAT_MAN" ? "rgba(244, 67, 54, 0.28)" : "rgba(33, 150, 243, 0.28)");
-            ctx.strokeStyle = a.category === "BIRTHDAY_BOY" ? "rgba(76, 175, 80, 0.9)" : (a.category === "FAT_MAN" ? "rgba(244, 67, 54, 0.9)" : "rgba(33, 150, 243, 0.9)");
-            ctx.lineWidth = 3; 
-            ctx.fillRect(a.x, a.y, a.w, a.h); 
-            ctx.strokeRect(a.x, a.y, a.w, a.h);
-            ctx.font = "bold 16px sans-serif"; 
-            ctx.fillStyle = "#fff"; 
-            ctx.fillText(a.name, a.x + 10, a.y + 28); 
-            ctx.restore();
-        }
-    }
-
     // 1. 青蛙特效彈道
     for (let f of frogs) {
         ctx.save();
@@ -820,7 +788,7 @@ function render(currentTarget, timestamp) {
 
             ctx.beginPath();
             ctx.moveTo(f.targetX - 28, f.targetY); ctx.lineTo(f.targetX + 28, f.targetY);
-            ctx.moveTo(f.targetX, f.targetY - 28); ctx.lineTo(f.targetX + 28, f.targetY);
+            ctx.moveTo(f.targetX, f.targetY - 28); ctx.lineTo(f.targetX + 28, f.targetY + 28);
             ctx.stroke();
         }
 
@@ -990,14 +958,12 @@ function render(currentTarget, timestamp) {
     } else {
         if (mosquito.facingRight) ctx.scale(1, 1); else ctx.scale(-1, 1);
 
-        // 奧義階段 1：結印 (先shadow1再shadow2)
         if (frenzyStartupTimer > 0) {
             let startupImg = frenzyStartupTimer > 0.25 ? assets.shadow1 : assets.shadow2;
             if (startupImg.complete) {
                 ctx.drawImage(startupImg, -mosquito.size / 2 - 4, -mosquito.size / 2 - 8, mosquito.size + 8, mosquito.size + 8);
             }
         } 
-        // 奧義階段 2：三隻影分身同時進入吸血狀態 (維持 3 秒)
         else if (frenzyActiveTimer > 0) {
             ctx.shadowColor = "#ff1744";
             ctx.shadowBlur = 12;
@@ -1020,7 +986,6 @@ function render(currentTarget, timestamp) {
             if (assets.suck.complete) ctx.drawImage(assets.suck, -mosquito.size / 2, -mosquito.size / 2, mosquito.size, mosquito.size);
             ctx.restore();
         } 
-        // 平常吸血與飛行狀態
         else {
             let currentImg = assets.fly1;
             if (isSucking && currentTarget) {
