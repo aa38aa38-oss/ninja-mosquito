@@ -31,6 +31,7 @@
             height: 100%;
         }
 
+        /* 頂部 HUD */
         #hud {
             position: absolute;
             top: env(safe-area-inset-top, 15px);
@@ -97,6 +98,52 @@
             cursor: pointer;
         }
 
+        /* 劇情/教學對話框 */
+        #dialog-modal {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 86%;
+            max-width: 380px;
+            background: rgba(18, 18, 28, 0.96);
+            border: 2px solid #ffd54f;
+            border-radius: 18px;
+            padding: 22px 20px;
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            z-index: 90;
+            box-shadow: 0 0 25px rgba(255, 213, 79, 0.4);
+            backdrop-filter: blur(10px);
+        }
+        #dialog-title {
+            color: #ffd54f;
+            font-size: 19px;
+            font-weight: 900;
+            margin-bottom: 12px;
+            text-align: center;
+        }
+        #dialog-content {
+            font-size: 15px;
+            line-height: 1.6;
+            color: #eee;
+            margin-bottom: 18px;
+            text-align: center;
+        }
+        #dialog-btn {
+            padding: 10px 36px;
+            background: linear-gradient(135deg, #ffb300, #ff6f00);
+            border: none;
+            border-radius: 22px;
+            color: #fff;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 0 12px rgba(255, 179, 0, 0.6);
+        }
+
         #qte-overlay {
             position: absolute;
             top: 25%;
@@ -133,6 +180,7 @@
             transition: transform 0.2s ease-out, opacity 0.3s ease-out;
         }
 
+        /* 左側搖桿區 */
         #touch-left-zone {
             position: absolute;
             top: 0;
@@ -169,47 +217,90 @@
             pointer-events: none;
         }
 
-        #action-container {
+        /* 傳說對決風格 右側技能盤盤面 */
+        #arena-action-pad {
             position: absolute;
-            right: 25px;
-            bottom: 35px;
-            display: flex;
-            flex-direction: column;
-            gap: 18px;
+            right: 15px;
+            bottom: 20px;
+            width: 220px;
+            height: 220px;
             z-index: 25;
             touch-action: none;
+            pointer-events: none;
         }
-        .hud-btn {
-            width: 78px;
-            height: 78px;
+        /* 核心大按鈕：普攻吸血 */
+        #suck-btn {
+            position: absolute;
+            right: 15px;
+            bottom: 15px;
+            width: 86px;
+            height: 86px;
             border-radius: 50%;
+            background: radial-gradient(circle, rgba(229, 57, 53, 0.9) 0%, rgba(183, 28, 28, 0.95) 100%);
+            border: 3px solid rgba(255, 138, 128, 0.85);
+            box-shadow: 0 0 20px rgba(211, 47, 47, 0.7);
             color: #fff;
-            font-size: 16px;
-            font-weight: bold;
+            font-size: 17px;
+            font-weight: 900;
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
             cursor: pointer;
-            backdrop-filter: blur(4px);
-            touch-action: none;
+            pointer-events: auto;
             transition: transform 0.08s ease;
         }
-        #suck-btn {
-            background: radial-gradient(circle, rgba(229, 57, 53, 0.8) 0%, rgba(183, 28, 28, 0.8) 100%);
-            border: 2.5px solid rgba(255, 138, 128, 0.7);
-            box-shadow: 0 0 16px rgba(211, 47, 47, 0.6);
-        }
         #suck-btn:active, #suck-btn.pressed {
-            transform: scale(0.9);
-            background: radial-gradient(circle, rgba(255, 23, 68, 0.95) 0%, rgba(213, 0, 0, 0.95) 100%);
+            transform: scale(0.92);
+            background: radial-gradient(circle, rgba(255, 23, 68, 1) 0%, rgba(213, 0, 0, 1) 100%);
         }
+        /* 周圍技能圈 */
+        .skill-btn {
+            position: absolute;
+            width: 58px;
+            height: 58px;
+            border-radius: 50%;
+            color: #fff;
+            font-size: 13px;
+            font-weight: bold;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            pointer-events: auto;
+            backdrop-filter: blur(4px);
+            transition: transform 0.08s ease, filter 0.2s ease;
+        }
+        .skill-btn:active {
+            transform: scale(0.9);
+        }
+        /* 技能 1：瞬移 */
         #blink-btn {
-            background: radial-gradient(circle, rgba(0, 176, 255, 0.8) 0%, rgba(0, 145, 234, 0.85) 100%);
-            border: 2.5px solid rgba(128, 222, 234, 0.8);
+            right: 110px;
+            bottom: 30px;
+            background: radial-gradient(circle, rgba(0, 176, 255, 0.85) 0%, rgba(0, 145, 234, 0.95) 100%);
+            border: 2px solid rgba(128, 222, 234, 0.9);
             box-shadow: 0 0 14px rgba(0, 176, 255, 0.6);
         }
-        #blink-btn:active {
-            transform: scale(0.9);
+        /* 技能 2 (預留技能) */
+        #skill-slot2 {
+            right: 105px;
+            bottom: 105px;
+            background: radial-gradient(circle, rgba(66, 66, 66, 0.8) 0%, rgba(33, 33, 33, 0.9) 100%);
+            border: 2px solid rgba(255, 255, 255, 0.35);
+        }
+        /* 技能 3 (預留技能) */
+        #skill-slot3 {
+            right: 30px;
+            bottom: 115px;
+            background: radial-gradient(circle, rgba(66, 66, 66, 0.8) 0%, rgba(33, 33, 33, 0.9) 100%);
+            border: 2px solid rgba(255, 255, 255, 0.35);
+        }
+        .skill-locked {
+            filter: grayscale(1);
+            opacity: 0.55 !important;
+            cursor: not-allowed;
         }
 
         #game-over-screen {
@@ -223,7 +314,7 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            z-index: 50;
+            z-index: 95;
             color: #fff;
             backdrop-filter: blur(5px);
         }
@@ -266,15 +357,19 @@
             background: rgba(40, 40, 50, 0.85);
             border: 2px solid rgba(255, 255, 255, 0.6);
         }
-        .over-btn:active {
-            transform: scale(0.92);
-        }
     </style>
 </head>
 <body>
 
 <div id="game-container">
     <canvas id="gameCanvas"></canvas>
+
+    <!-- 對話引導彈窗 -->
+    <div id="dialog-modal">
+        <div id="dialog-title">任務指引</div>
+        <div id="dialog-content">任務內容: 幫力維吸出來，請將壽星精華液吸滿</div>
+        <button id="dialog-btn">確定</button>
+    </div>
 
     <div id="touch-left-zone"></div>
     <div id="arena-joystick">
@@ -301,9 +396,27 @@
         </div>
     </div>
 
-    <div id="action-container">
-        <div id="suck-btn" class="hud-btn">💉 吸血</div>
-        <div id="blink-btn" class="hud-btn">⚡ 瞬移</div>
+    <!-- 傳說對決風格右側面板 -->
+    <div id="arena-action-pad">
+        <div id="suck-btn">
+            <span>💉</span>
+            <span style="font-size:12px;">吸血</span>
+        </div>
+        <!-- 技能 1: 瞬移 (一開始鎖定) -->
+        <div id="blink-btn" class="skill-btn skill-locked">
+            <span>🔒</span>
+            <span style="font-size:10px;">瞬移</span>
+        </div>
+        <!-- 技能 2: 預留 -->
+        <div id="skill-slot2" class="skill-btn skill-locked">
+            <span>🔒</span>
+            <span style="font-size:10px;">技能2</span>
+        </div>
+        <!-- 技能 3: 預留 -->
+        <div id="skill-slot3" class="skill-btn skill-locked">
+            <span>🔒</span>
+            <span style="font-size:10px;">技能3</span>
+        </div>
     </div>
 
     <div id="game-over-screen">
@@ -352,8 +465,8 @@ assets.bg.onload = function() {
 const camera = { x: 0, y: 0, zoom: 3.8 };
 
 const mosquito = {
-    x: 389,
-    y: 700,
+    x: 450,
+    y: 230,
     size: 32,
     speed: 260,
     facingRight: true,
@@ -364,14 +477,13 @@ const mosquito = {
     invincibleTimer: 0
 };
 
-let isGameStarted = true;
-
 let essence = 0;
 let health = 100;
 let alertVal = 0;
 
 let isSucking = false;
 let blinkCooldown = 0;
+let hasLearnedBlink = false; // 是否已解鎖瞬移
 let joyVector = { x: 0, y: 0 };
 
 let bloodParticles = [];
@@ -380,6 +492,10 @@ let showDebugBoxes = false;
 
 let hazards = [];
 let hazardSpawnTimer = 0;
+
+// 地圖上的可拾取血袋
+let bloodPacks = [];
+let bloodPackSpawnTimer = 0;
 
 let windWaveTimer = 0;
 let windWaveActive = false;
@@ -393,14 +509,49 @@ let slapHandsDist = 1.0;
 let deathAnimTimer = 0;
 let soulY = 0;
 
+// 對話流程管理
+let isPausedForDialog = true;
+let dialogStep = 1;
+const dialogModal = document.getElementById("dialog-modal");
+const dialogTitle = document.getElementById("dialog-title");
+const dialogContent = document.getElementById("dialog-content");
+const dialogBtn = document.getElementById("dialog-btn");
+
+dialogBtn.addEventListener("click", () => {
+    if (dialogStep === 1) {
+        dialogStep = 2;
+        dialogTitle.innerText = "重要警告";
+        dialogContent.innerText = "警告: 胖子的血有毒，不要吸，會死！";
+    } else if (dialogStep === 2) {
+        dialogStep = 3;
+        dialogTitle.innerText = "生存提示";
+        dialogContent.innerText = "什麼事都不做也會減少生命值，快去吸吧！";
+    } else if (dialogStep === 3) {
+        dialogStep = 4;
+        dialogModal.style.display = "none";
+        isPausedForDialog = false;
+    } else if (dialogStep === "UNLOCK_BLINK") {
+        dialogModal.style.display = "none";
+        isPausedForDialog = false;
+    }
+});
+
+function showUnlockBlinkDialog() {
+    isPausedForDialog = true;
+    dialogStep = "UNLOCK_BLINK";
+    dialogTitle.innerText = "🎉 領悟新忍術！";
+    dialogContent.innerText = "恭喜壽星精華液達到 10%！\n你已學會【瞬移⚡】忍術！推動左搖桿並按下瞬移，可高速穿透閃避危險與掌風！";
+    dialogModal.style.display = "flex";
+}
+
 document.getElementById("debug-btn").addEventListener("click", () => {
     showDebugBoxes = !showDebugBoxes;
     document.getElementById("debug-btn").innerText = showDebugBoxes ? "關閉熱區" : "👁 顯示熱區";
 });
 
 function resetGame() {
-    mosquito.x = 389;
-    mosquito.y = 700;
+    mosquito.x = 450;
+    mosquito.y = 230;
     mosquito.isDead = false;
     mosquito.deathType = "";
     mosquito.invincibleTimer = 0;
@@ -409,6 +560,8 @@ function resetGame() {
     alertVal = 0;
     isSucking = false;
     blinkCooldown = 0;
+    hasLearnedBlink = false;
+    updateBlinkBtnUI();
     qteActive = false;
     qteTimer = 0;
     slapHandsDist = 1.0;
@@ -418,12 +571,21 @@ function resetGame() {
     windWaveActive = false;
     windWaveWarning = false;
     hazards = [];
+    bloodPacks = [];
+    bloodPackSpawnTimer = 0;
     hazardSpawnTimer = 0;
     bloodParticles = [];
     blinkShadows = [];
     document.getElementById("qte-overlay").style.display = "none";
     document.getElementById("dodge-popup").style.display = "none";
     document.getElementById("game-over-screen").style.display = "none";
+
+    // 重新開啟引導
+    isPausedForDialog = true;
+    dialogStep = 1;
+    dialogTitle.innerText = "任務指引";
+    dialogContent.innerText = "任務內容: 幫力維吸出來，請將壽星精華液吸滿";
+    dialogModal.style.display = "flex";
 }
 
 document.getElementById("retry-btn").addEventListener("click", resetGame);
@@ -431,13 +593,30 @@ document.getElementById("home-btn").addEventListener("click", () => {
     window.location.href = "index.html";
 });
 
+function updateBlinkBtnUI() {
+    const blinkBtn = document.getElementById("blink-btn");
+    if (!hasLearnedBlink) {
+        blinkBtn.classList.add("skill-locked");
+        blinkBtn.innerHTML = `<span>🔒</span><span style="font-size:10px;">未解鎖</span>`;
+    } else {
+        blinkBtn.classList.remove("skill-locked");
+        if (blinkCooldown <= 0) {
+            blinkBtn.innerHTML = `<span>⚡</span><span style="font-size:10px;">瞬移</span>`;
+            blinkBtn.style.opacity = "1";
+        } else {
+            blinkBtn.innerHTML = `<span>${blinkCooldown.toFixed(1)}</span>`;
+            blinkBtn.style.opacity = "0.6";
+        }
+    }
+}
+
 function getCharacterAreas() {
     return [
         { category: "BIRTHDAY_BOY", name: "壽星臉部", x: 385, y: 30, w: 130, h: 160 },
-        { category: "BIRTHDAY_BOY", name: "壽星雙手手臂", x: 360, y: 190, w: 180, h: 90 },
-        { category: "BIRTHDAY_BOY", name: "壽星小腿與拖鞋", x: 355, y: 550, w: 135, h: 225 },
+        { category: "BIRTHDAY_BOY", name: "壽星雙手手臂", x: 340, y: 185, w: 235, h: 105 },
+        { category: "BIRTHDAY_BOY", name: "壽星左腿與拖鞋", x: 355, y: 540, w: 95, h: 235 },
+        { category: "BIRTHDAY_BOY", name: "壽星右腿與拖鞋", x: 450, y: 540, w: 110, h: 235 },
         { category: "FAT_MAN", name: "胖子臉部", x: 250, y: 35, w: 105, h: 140 },
-        { category: "FAT_MAN", name: "胖子手臂與比讚", x: 245, y: 180, w: 95, h: 95 },
         { category: "FAT_MAN", name: "胖子小腿", x: 275, y: 530, w: 80, h: 160 },
         { category: "OTHER_FRIEND", name: "白衣朋友臉部", x: 110, y: 25, w: 110, h: 145 },
         { category: "OTHER_FRIEND", name: "白衣朋友手臂比讚", x: 25, y: 175, w: 115, h: 115 },
@@ -467,7 +646,7 @@ let joyOrigin = { x: 0, y: 0 };
 let currentTouchId = null;
 
 function onJoyStart(clientX, clientY, touchId = null) {
-    if (mosquito.isDead) return;
+    if (mosquito.isDead || isPausedForDialog) return;
     joyActive = true;
     currentTouchId = touchId;
     joyOrigin = { x: clientX, y: clientY };
@@ -479,7 +658,7 @@ function onJoyStart(clientX, clientY, touchId = null) {
 }
 
 function onJoyMove(clientX, clientY) {
-    if (!joyActive || mosquito.isDead) return;
+    if (!joyActive || mosquito.isDead || isPausedForDialog) return;
     let dx = clientX - joyOrigin.x;
     let dy = clientY - joyOrigin.y;
     const dist = Math.hypot(dx, dy);
@@ -502,13 +681,13 @@ function onJoyEnd() {
 
 leftZone.addEventListener("touchstart", (e) => {
     e.preventDefault();
-    if (joyActive || mosquito.isDead) return;
+    if (joyActive || mosquito.isDead || isPausedForDialog) return;
     const t = e.changedTouches[0];
     onJoyStart(t.clientX, t.clientY, t.identifier);
 }, { passive: false });
 
 window.addEventListener("touchmove", (e) => {
-    if (!joyActive || mosquito.isDead) return;
+    if (!joyActive || mosquito.isDead || isPausedForDialog) return;
     for (let t of e.touches) {
         if (t.identifier === currentTouchId) {
             onJoyMove(t.clientX, t.clientY);
@@ -535,7 +714,7 @@ const suckBtn = document.getElementById("suck-btn");
 const blinkBtn = document.getElementById("blink-btn");
 
 function startSuck() {
-    if (mosquito.isDead) return;
+    if (mosquito.isDead || isPausedForDialog) return;
     isSucking = true;
     suckBtn.classList.add("pressed");
 }
@@ -563,7 +742,8 @@ function showDodgeEffect() {
 
 function triggerBlink(e) {
     if (e && e.preventDefault) e.preventDefault();
-    if (blinkCooldown <= 0 && !mosquito.isDead) {
+    if (!hasLearnedBlink) return;
+    if (blinkCooldown <= 0 && !mosquito.isDead && !isPausedForDialog) {
         blinkCooldown = 2.0;
         stopSuck();
 
@@ -580,7 +760,6 @@ function triggerBlink(e) {
         }
 
         const blinkDist = 180;
-
         blinkShadows.push({ x: mosquito.x, y: mosquito.y, alpha: 0.8, facingRight: mosquito.facingRight });
         blinkShadows.push({ x: mosquito.x + dirX * 60, y: mosquito.y + dirY * 60, alpha: 0.5, facingRight: mosquito.facingRight });
 
@@ -695,12 +874,29 @@ function spawnHazard() {
     }
 }
 
+// 產生血袋道具
+function spawnBloodPack() {
+    bloodPacks.push({
+        x: Math.random() * (worldWidth - 100) + 50,
+        y: Math.random() * (worldHeight - 150) + 80,
+        w: 26,
+        h: 26,
+        life: 14.0 // 存活 14 秒
+    });
+}
+
 let lastTime = performance.now();
 let suckTick = 0;
 
 function gameLoop(now) {
     const dt = (now - lastTime) / 1000;
     lastTime = now;
+
+    if (isPausedForDialog) {
+        render(null, now);
+        requestAnimationFrame(gameLoop);
+        return;
+    }
 
     if (hurtFlashTimer > 0) hurtFlashTimer -= dt;
     if (mosquito.invincibleTimer > 0) mosquito.invincibleTimer -= dt;
@@ -716,14 +912,8 @@ function gameLoop(now) {
 
     if (blinkCooldown > 0) {
         blinkCooldown -= dt;
-        if (blinkCooldown <= 0) {
-            blinkCooldown = 0;
-            blinkBtn.innerText = "⚡ 瞬移";
-            blinkBtn.style.opacity = "1";
-        } else {
-            blinkBtn.innerText = blinkCooldown.toFixed(1);
-            blinkBtn.style.opacity = "0.6";
-        }
+        if (blinkCooldown <= 0) blinkCooldown = 0;
+        updateBlinkBtnUI();
     }
 
     if (joyVector.x !== 0 || joyVector.y !== 0) {
@@ -748,10 +938,38 @@ function gameLoop(now) {
         mosquito.frameTimer = 0;
     }
 
+    // 雜物與血袋刷新
     hazardSpawnTimer += dt;
     if (hazardSpawnTimer > 2.5) {
         spawnHazard();
         hazardSpawnTimer = 0;
+    }
+
+    bloodPackSpawnTimer += dt;
+    if (bloodPackSpawnTimer > 6.5) { // 每 6.5 秒生成一個回血血袋
+        if (bloodPacks.length < 3) spawnBloodPack();
+        bloodPackSpawnTimer = 0;
+    }
+
+    // 碰撞血袋檢測
+    for (let i = bloodPacks.length - 1; i >= 0; i--) {
+        let bp = bloodPacks[i];
+        bp.life -= dt;
+        const dist = Math.hypot(mosquito.x - bp.x, mosquito.y - bp.y);
+        if (dist < 26) {
+            // 吃掉血袋：回補 35 點生命值！
+            health = Math.min(100, health + 35);
+            for (let k = 0; k < 12; k++) {
+                bloodParticles.push({
+                    x: bp.x, y: bp.y,
+                    vx: (Math.random() - 0.5) * 80, vy: (Math.random() - 0.5) * 80,
+                    radius: 2.5, alpha: 1.0, color: "#76ff03"
+                });
+            }
+            bloodPacks.splice(i, 1);
+            continue;
+        }
+        if (bp.life <= 0) bloodPacks.splice(i, 1);
     }
 
     for (let i = hazards.length - 1; i >= 0; i--) {
@@ -813,6 +1031,7 @@ function gameLoop(now) {
         alertVal = Math.max(0, alertVal - 10 * dt);
     }
 
+    // 掌風機制 (有瞬移提醒)
     if (alertVal >= 40) {
         windWaveTimer += dt;
         if (windWaveTimer > 2.45 && !windWaveActive) {
@@ -875,13 +1094,22 @@ function gameLoop(now) {
             statusText.style.color = "#bbb";
         } else if (currentTarget.category === "BIRTHDAY_BOY") {
             let rateMod = muscleTight ? 0.5 : 1.0;
-            let gain = (currentTarget.name.includes("臉") ? 12 : (currentTarget.name.includes("手") ? 8 : 5)) * rateMod;
+            // 加快壽星精華液提升速度！臉部 22/s, 手臂 15/s, 腿部 10/s
+            let gain = (currentTarget.name.includes("臉") ? 22 : (currentTarget.name.includes("手") ? 15 : 10)) * rateMod;
             let alertSpd = currentTarget.name.includes("臉") ? 45 : (currentTarget.name.includes("手") ? 32 : 20);
             
+            let prevEssence = essence;
             essence = Math.min(100, essence + gain * dt);
             alertVal = Math.min(100, alertVal + alertSpd * dt);
             health = Math.min(100, health + 14 * dt);
             
+            // 達到 10% 解鎖瞬移
+            if (prevEssence < 10 && essence >= 10 && !hasLearnedBlink) {
+                hasLearnedBlink = true;
+                updateBlinkBtnUI();
+                showUnlockBlinkDialog();
+            }
+
             statusText.innerText = `🩸 汲取【${currentTarget.name}】精華液中！`;
             statusText.style.color = "#ff1744";
 
@@ -902,21 +1130,21 @@ function gameLoop(now) {
     } else {
         if (!qteActive && hurtFlashTimer <= 0) {
             if (windWaveWarning) {
-                statusText.innerText = "⚠️ 掌風襲來警告！準備按【瞬移⚡】閃避！";
+                statusText.innerText = hasLearnedBlink ? "⚠️ 掌風襲來！快按【瞬移⚡】閃避！" : "⚠️ 掌風襲來！小心被拍扁！";
                 statusText.style.color = "#00e5ff";
             } else if (currentTarget) {
                 if (currentTarget.category === "BIRTHDAY_BOY") {
-                    statusText.innerText = `🟢 鎖定壽星部位：${currentTarget.name} (按住吸血回血)`;
+                    statusText.innerText = `🟢 鎖定壽星部位：${currentTarget.name} (按住吸血)`;
                     statusText.style.color = "#76ff03";
                 } else if (currentTarget.category === "FAT_MAN") {
-                    statusText.innerText = `⚠️ 這是路人胖子！(${currentTarget.name} 別吸)`;
+                    statusText.innerText = `⚠️ 這是路人胖子！有毒別吸！`;
                     statusText.style.color = "#ff5252";
                 } else {
                     statusText.innerText = `⚪ 發現目標：${currentTarget.name} (可吸血回血)`;
                     statusText.style.color = "#fff";
                 }
             } else {
-                statusText.innerText = "注意飢餓扣血！快找皮膚吸血！";
+                statusText.innerText = "注意飢餓扣血！快找皮膚吸血或吃血袋！";
                 statusText.style.color = "#ffeb3b";
             }
         }
@@ -1001,6 +1229,30 @@ function render(currentTarget, timestamp) {
         }
     }
 
+    // 繪製地圖上的血袋道具
+    for (let bp of bloodPacks) {
+        ctx.save();
+        ctx.fillStyle = "#d50000";
+        ctx.strokeStyle = "#fff";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.roundRect(bp.x - bp.w / 2, bp.y - bp.h / 2, bp.w, bp.h, 6);
+        ctx.fill();
+        ctx.stroke();
+
+        // 白十字符號
+        ctx.fillStyle = "#fff";
+        ctx.fillRect(bp.x - 3, bp.y - 8, 6, 16);
+        ctx.fillRect(bp.x - 8, bp.y - 3, 16, 6);
+
+        // 文字標記
+        ctx.font = "bold 10px sans-serif";
+        ctx.fillStyle = "#76ff03";
+        ctx.textAlign = "center";
+        ctx.fillText("+35 HP", bp.x, bp.y - 16);
+        ctx.restore();
+    }
+
     for (let h of hazards) {
         ctx.save();
         if (h.type === "SPRAY") {
@@ -1071,6 +1323,11 @@ function render(currentTarget, timestamp) {
         ctx.moveTo(mosquito.x - 120, 0);
         ctx.lineTo(mosquito.x - 120, worldHeight);
         ctx.stroke();
+
+        ctx.font = "bold 13px sans-serif";
+        ctx.fillStyle = "#00e5ff";
+        ctx.textAlign = "center";
+        ctx.fillText(hasLearnedBlink ? "⚠️ 掌風襲來！按【瞬移⚡】避險！" : "⚠️ 掌風襲來！", mosquito.x, mosquito.y - 35);
         ctx.restore();
     }
 
