@@ -25,7 +25,7 @@
         #dialog-title { color: #e040fb; font-size: 19px; font-weight: 900; margin-bottom: 12px; text-align: center; }
         #dialog-content { font-size: 15px; line-height: 1.6; color: #eee; margin-bottom: 18px; text-align: center; white-space: pre-line; }
         .dialog-btn-group { display: flex; gap: 12px; justify-content: center; width: 100%; }
-        .dialog-action-btn { padding: 10px 24px; background: linear-gradient(135deg, #d500f9, #aa00ff); border: none; border-radius: 22px; color: #fff; font-size: 15px; font-weight: bold; cursor: pointer; box-shadow: 0 0 12px rgba(213, 0, 249, 0.6); }
+        .dialog-action-btn { padding: 10px 24px; background: linear-gradient(135deg, #d500f9, #aa00ff); border: none; border-radius: 22px; color: #fff; font-size: 15px; font-weight: bold; cursor: pointer; box-shadow: 0 0 12px rgba(213, 0, 249, 0.6); pointer-events: auto; }
 
         #qte-overlay { position: absolute; top: 25%; left: 50%; transform: translate(-50%, -50%); color: #ff1744; font-size: 26px; font-weight: 900; text-shadow: 0 0 10px #000, 0 0 20px #ff1744; display: none; z-index: 45; pointer-events: none; animation: pulse 0.15s infinite alternate; text-align: center; }
         @keyframes pulse { 0% { transform: translate(-50%, -50%) scale(1.0); } 100% { transform: translate(-50%, -50%) scale(1.15); } }
@@ -134,6 +134,7 @@ function resize() { canvas.width = window.innerWidth; canvas.height = window.inn
 window.addEventListener("resize", resize);
 resize();
 
+// 載入全套圖片素材
 const assets = {
     bg: new Image(),
     fly1: new Image(),
@@ -149,7 +150,19 @@ const assets = {
     shadow1: new Image(),
     shadow2: new Image()
 };
-assets.bg.src = "bg_level2.png";
+
+// 背景圖副檔名自動備援機制（避免副檔名大小寫或 png/jpg 差異卡死）
+const bgCandidates = ["bg_level2.png", "bg_level2.jpg", "bg_level2.jpeg", "bg_level2.PNG", "bg_level2.JPG"];
+let bgCandidateIdx = 0;
+
+function loadNextBg() {
+    if (bgCandidateIdx < bgCandidates.length) {
+        assets.bg.src = bgCandidates[bgCandidateIdx++];
+    }
+}
+assets.bg.onerror = loadNextBg;
+loadNextBg();
+
 assets.fly1.src = "mosquito_fly_1.png";
 assets.fly2.src = "mosquito_fly_2.png";
 assets.suck.src = "mosquito_suck.png";
@@ -165,11 +178,20 @@ assets.shadow2.src = "shadow2.png";
 
 let worldWidth = 1507;
 let worldHeight = 798;
-assets.bg.onload = function() {
+let hasInitialized = false;
+
+function initGameOnce() {
+    if (hasInitialized) return;
+    hasInitialized = true;
     worldWidth = assets.bg.naturalWidth || 1507;
     worldHeight = assets.bg.naturalHeight || 798;
     resetGame();
-};
+    requestAnimationFrame(gameLoop);
+}
+
+assets.bg.onload = initGameOnce;
+// 300ms 保底超時，若圖片找不到也直接啟動，絕不卡死
+setTimeout(initGameOnce, 300);
 
 const camera = { x: 0, y: 0, zoom: 2.6 };
 const mosquito = { x: 1228, y: 382, size: 36, speed: 300, facingRight: true, frame: 0, frameTimer: 0, isDead: false, deathType: "", invincibleTimer: 0 };
@@ -179,7 +201,6 @@ let health = 100;
 let alertVal = 0;
 let isSucking = false;
 
-// 忍術狀態
 let blinkCooldown = 0;
 let stealthCooldown = 0;
 let stealthActiveTimer = 0;
@@ -230,7 +251,7 @@ const dialogContent = document.getElementById("dialog-content");
 const dialogBtn1 = document.getElementById("dialog-btn-1");
 
 function handleBtn1Click(e) {
-    if (e && e.preventDefault) e.preventDefault();
+    if (e) { e.preventDefault(); e.stopPropagation(); }
     if (dialogStep === 1) {
         dialogModal.style.display = "none";
         isPausedForDialog = false;
@@ -238,12 +259,12 @@ function handleBtn1Click(e) {
         dialogModal.style.display = "none";
         isPausedForDialog = false;
     } else if (dialogStep === "ALL_COMPLETE") {
-        // 通關後點擊按鈕，跳轉至 ending.html 謝幕畫面
         window.location.href = "ending.html";
     }
 }
 dialogBtn1.addEventListener("click", handleBtn1Click);
-dialogBtn1.addEventListener("touchend", handleBtn1Click);
+dialogBtn1.addEventListener("touchstart", handleBtn1Click, { passive: false });
+dialogBtn1.addEventListener("pointerdown", handleBtn1Click);
 
 function showUnlockFrenzyDialog() {
     isPausedForDialog = true;
@@ -384,7 +405,6 @@ function showDodgeEffect(txt = "⚡ DODGE! 完美閃避！") {
     setTimeout(() => { popup.style.transform = "translate(-50%, -70%) scale(0.9)"; popup.style.opacity = "0"; setTimeout(() => { popup.style.display = "none"; }, 300); }, 500);
 }
 
-// 技能1：瞬移
 function triggerBlink(e) {
     if (e && e.preventDefault) e.preventDefault();
     if (blinkCooldown <= 0 && !mosquito.isDead && !isPausedForDialog) {
@@ -405,7 +425,6 @@ function triggerBlink(e) {
 blinkBtn.addEventListener("click", triggerBlink);
 blinkBtn.addEventListener("touchstart", triggerBlink, { passive: false });
 
-// 技能2：隱身術
 function triggerStealth(e) {
     if (e && e.preventDefault) e.preventDefault();
     if (stealthCooldown <= 0 && stealthActiveTimer <= 0 && !mosquito.isDead && !isPausedForDialog) {
@@ -418,7 +437,6 @@ function triggerStealth(e) {
 stealthBtn.addEventListener("click", triggerStealth);
 stealthBtn.addEventListener("touchstart", triggerStealth, { passive: false });
 
-// 技能3：奧義·大吸特吸（結印 + 影分身 3秒2倍吸血）
 function triggerFrenzy(e) {
     if (e && e.preventDefault) e.preventDefault();
     if (!hasLearnedFrenzy) return;
@@ -453,11 +471,13 @@ function triggerDeath(reason) {
     else if (reason === "ZAPPED") reasonText.innerText = "啪滋！被高壓電蚊拍正面擊中，當場碳化化為灰燼！";
     else if (reason === "COIL") reasonText.innerText = "被旋轉燃燒的蚊香燙傷烤焦，忍道終結...";
     else if (reason === "WIND_STRIKE") reasonText.innerText = "強烈掌風正面命中！脆弱的翅膀與身軀當場碎裂墜地...";
+    else if (reason === "FROG_TONGUE") reasonText.innerText = "呱！被青蛙超長舌頭瞬間捲入口中，成為青蛙的腹中之物！";
+    else if (reason === "BIRD_STRIKE") reasonText.innerText = "啾！被高速俯衝的飢餓麻雀猛烈撞擊叼走，忍道終結！";
+    else if (reason === "POISON_GAS") reasonText.innerText = "咳咳！吸入過多噴霧毒液濃煙，劇毒發作當場身亡！";
     else reasonText.innerText = "嘔！吸到太多胖子油膩毒血，蚊子當場暴斃身亡...";
     setTimeout(() => { document.getElementById("game-over-screen").style.display = "flex"; }, 1800);
 }
 
-// 1. 青蛙生成
 function spawnFrog() {
     const angle = Math.random() * Math.PI * 2;
     const dist = Math.random() * 80 + 150;
@@ -476,7 +496,6 @@ function spawnFrog() {
     });
 }
 
-// 2. 麻雀生成
 function spawnBird() {
     const angle = Math.random() * Math.PI * 2;
     const startX = Math.max(60, Math.min(worldWidth - 80, mosquito.x + Math.cos(angle) * 230));
@@ -503,7 +522,6 @@ function spawnBird() {
     });
 }
 
-// 3. 殺蟲液瓶生成
 function spawnPoison() {
     poisons.push({
         x: Math.random() * (worldWidth - 200) + 100,
@@ -698,7 +716,7 @@ function gameLoop(now) {
     const currentTarget = getCurrentTarget();
     const statusText = document.getElementById("status-text");
 
-    // 吸血邏輯（2倍速）
+    // 吸血邏輯
     if (isSucking) {
         suckTick += dt * 18;
         if (!currentTarget) { statusText.innerText = "❌ 咬到衣服或紙張！無法吸血"; statusText.style.color = "#bbb"; }
@@ -802,7 +820,7 @@ function render(currentTarget, timestamp) {
 
             ctx.beginPath();
             ctx.moveTo(f.targetX - 28, f.targetY); ctx.lineTo(f.targetX + 28, f.targetY);
-            ctx.moveTo(f.targetX, f.targetY - 28); ctx.lineTo(f.targetX, f.targetY + 28);
+            ctx.moveTo(f.targetX, f.targetY - 28); ctx.lineTo(f.targetX + 28, f.targetY);
             ctx.stroke();
         }
 
@@ -866,7 +884,6 @@ function render(currentTarget, timestamp) {
         ctx.restore();
     }
 
-    // 羽毛粒子
     for (let f of featherParticles) {
         ctx.save();
         ctx.fillStyle = `rgba(188, 170, 153, ${f.alpha})`;
@@ -876,7 +893,6 @@ function render(currentTarget, timestamp) {
         ctx.restore();
     }
 
-    // 忍術煙霧粒子
     for (let s of smokeParticles) {
         ctx.save();
         ctx.fillStyle = `rgba(240, 240, 255, ${s.alpha})`;
@@ -974,11 +990,11 @@ function render(currentTarget, timestamp) {
     } else {
         if (mosquito.facingRight) ctx.scale(1, 1); else ctx.scale(-1, 1);
 
-        // 奧義階段 1：結印 (先shadow1再shadow2)[cite: 18, 19]
+        // 奧義階段 1：結印 (先shadow1再shadow2)
         if (frenzyStartupTimer > 0) {
-            let startupImg = frenzyStartupTimer > 0.25 ? assets.shadow1 : assets.shadow2;[cite: 18, 19]
+            let startupImg = frenzyStartupTimer > 0.25 ? assets.shadow1 : assets.shadow2;
             if (startupImg.complete) {
-                ctx.drawImage(startupImg, -mosquito.size / 2 - 4, -mosquito.size / 2 - 8, mosquito.size + 8, mosquito.size + 8);[cite: 18, 19]
+                ctx.drawImage(startupImg, -mosquito.size / 2 - 4, -mosquito.size / 2 - 8, mosquito.size + 8, mosquito.size + 8);
             }
         } 
         // 奧義階段 2：三隻影分身同時進入吸血狀態 (維持 3 秒)
@@ -1027,7 +1043,6 @@ function render(currentTarget, timestamp) {
     if (hurtFlashTimer > 0) { ctx.save(); ctx.fillStyle = `rgba(255, 0, 0, ${hurtFlashTimer * 1.5})`; ctx.fillRect(0, 0, canvas.width, canvas.height); ctx.restore(); }
     if (essenceDrainFlashTimer > 0) { ctx.save(); ctx.fillStyle = `rgba(224, 64, 251, ${essenceDrainFlashTimer * 1.2})`; ctx.fillRect(0, 0, canvas.width, canvas.height); ctx.restore(); }
 }
-requestAnimationFrame(gameLoop);
 </script>
 </body>
 </html>
