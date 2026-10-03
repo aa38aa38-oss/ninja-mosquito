@@ -131,7 +131,6 @@ function resize() { canvas.width = window.innerWidth; canvas.height = window.inn
 window.addEventListener("resize", resize);
 resize();
 
-// 載入全套圖片素材
 const assets = {
     bg: new Image(),
     fly1: new Image(),
@@ -189,7 +188,6 @@ assets.bg.onload = initGameOnce;
 setTimeout(initGameOnce, 300);
 
 const camera = { x: 0, y: 0, zoom: 2.6 };
-// 開場停留於左側胖子處 (x: 351, y: 378)
 const mosquito = { x: 351, y: 378, size: 36, speed: 300, facingRight: true, frame: 0, frameTimer: 0, isDead: false, deathType: "", invincibleTimer: 0 };
 
 let essence = 0;
@@ -253,6 +251,7 @@ function handleBtn1Click(e) {
     } else if (dialogStep === "UNLOCK_FRENZY") {
         dialogModal.style.display = "none";
         isPausedForDialog = false;
+        frenzyStartupTimer = 0; // 確保彈窗關閉後不卡在結印狀態
     } else if (dialogStep === "ALL_COMPLETE") {
         window.location.href = "ending.html";
     }
@@ -281,7 +280,6 @@ function showAllCompleteDialog() {
 }
 
 function resetGame() {
-    // 重設出生點停留在左側胖子位置
     mosquito.x = 351; mosquito.y = 378; mosquito.isDead = false; mosquito.deathType = ""; mosquito.invincibleTimer = 0;
     camera.x = mosquito.x - (canvas.width / 2) / camera.zoom;
     camera.y = mosquito.y - (canvas.height / 2) / camera.zoom;
@@ -328,7 +326,7 @@ function updateSkillsUI() {
     } else {
         frenzyBtn.classList.remove("skill-locked");
         if (frenzyActiveTimer > 0) { frenzyBtn.innerHTML = `<span>🌪️</span><span style="font-size:10px;">${frenzyActiveTimer.toFixed(1)}s</span>`; frenzyBtn.style.filter = "drop-shadow(0 0 10px #ff1744)"; }
-        else if (frenzyCooldown <= 0) { frenzyBtn.innerHTML = `<span>🌪️️</span><span style="font-size:10px;">大吸特吸</span>`; frenzyBtn.style.opacity = "1"; frenzyBtn.style.filter = "none"; }
+        else if (frenzyCooldown <= 0) { frenzyBtn.innerHTML = `<span>🌪️</span><span style="font-size:10px;">大吸特吸</span>`; frenzyBtn.style.opacity = "1"; frenzyBtn.style.filter = "none"; }
         else { frenzyBtn.innerHTML = `<span>${frenzyCooldown.toFixed(1)}</span>`; frenzyBtn.style.opacity = "0.6"; frenzyBtn.style.filter = "none"; }
     }
 }
@@ -577,7 +575,6 @@ function gameLoop(now) {
     poisonSpawnTimer += dt; if (poisonSpawnTimer > 4.5) { if (poisons.length < 2) spawnPoison(); poisonSpawnTimer = 0; }
     bloodPackSpawnTimer += dt; if (bloodPackSpawnTimer > 5.5) { if (bloodPacks.length < 3) spawnBloodPack(); bloodPackSpawnTimer = 0; }
 
-    // 1. 青蛙邏輯
     for (let i = frogs.length - 1; i >= 0; i--) {
         let f = frogs[i];
         f.timer -= dt;
@@ -601,7 +598,6 @@ function gameLoop(now) {
         }
     }
 
-    // 2. 麻雀邏輯
     for (let i = birds.length - 1; i >= 0; i--) {
         let b = birds[i];
         if (b.warnTimer > 0) {
@@ -636,7 +632,6 @@ function gameLoop(now) {
         }
     }
 
-    // 3. 殺蟲液邏輯
     for (let i = poisons.length - 1; i >= 0; i--) {
         let p = poisons[i];
         p.timer -= dt;
@@ -659,7 +654,6 @@ function gameLoop(now) {
         }
     }
 
-    // 飛行血包
     for (let i = bloodPacks.length - 1; i >= 0; i--) {
         let bp = bloodPacks[i]; bp.life -= dt; bp.floatPhase += dt * 4; bp.x += bp.vx * dt; bp.y += (bp.vy + Math.sin(bp.floatPhase) * 20) * dt;
         if (bp.x < 30) { bp.x = 30; bp.vx = Math.abs(bp.vx); } if (bp.x > worldWidth - 30) { bp.x = worldWidth - 30; bp.vx = -Math.abs(bp.vx); }
@@ -668,16 +662,18 @@ function gameLoop(now) {
         if (bp.life <= 0) bloodPacks.splice(i, 1);
     }
 
-    // 電蚊拍與蚊香
     for (let i = hazards.length - 1; i >= 0; i--) {
         let h = hazards[i];
         if (h.type === "SWAT") {
-            if (h.warnTimer > 0) { ctx.strokeStyle = "rgba(255, 23, 68, 0.85)"; ctx.lineWidth = 2; ctx.setLineDash([4, 4]); ctx.strokeRect(h.x - h.width / 2, h.y - h.height / 2, h.width, h.height); ctx.font = "12px sans-serif"; ctx.fillStyle = "#ff1744"; ctx.fillText("⚡ 電蚊拍瞄準中！", h.x - 45, h.y - h.height / 2 - 6); }
-            else { ctx.fillStyle = "rgba(0, 229, 255, 0.45)"; ctx.strokeStyle = "#00e5ff"; ctx.lineWidth = 3; ctx.fillRect(h.x - h.width / 2, h.y - h.height / 2, h.width, h.height); ctx.strokeRect(h.x - h.width / 2, h.y - h.height / 2, h.width, h.height); }
+            if (h.warnTimer > 0) h.warnTimer -= dt;
+            else if (h.strikeTimer > 0) { h.strikeTimer -= dt; if (!h.struck && mosquito.invincibleTimer <= 0 && Math.abs(mosquito.x - h.x) < h.width / 2 && Math.abs(mosquito.y - h.y) < h.height / 2) { h.struck = true; health = Math.max(0, health - 55); hurtFlashTimer = 0.3; if (health <= 0) triggerDeath("ZAPPED"); } }
+            else hazards.splice(i, 1);
         } else if (h.type === "COIL") {
-            ctx.translate(h.x, h.y); ctx.rotate(h.angle); ctx.strokeStyle = "#4e342e"; ctx.lineWidth = 4; ctx.beginPath(); ctx.arc(0, 0, h.radius, 0, Math.PI * 1.8); ctx.stroke(); ctx.fillStyle = "#ff3d00"; ctx.beginPath(); ctx.arc(h.radius, 0, 3.5, 0, Math.PI * 2); ctx.fill();
+            h.x += h.vx * dt; h.y += h.vy * dt; h.angle += 3.5 * dt; h.life -= dt;
+            if (h.x < 30 || h.x > worldWidth - 30) h.vx *= -1; if (h.y < 30 || h.y > worldHeight - 30) h.vy *= -1;
+            if (mosquito.invincibleTimer <= 0 && Math.hypot(mosquito.x - h.x, mosquito.y - h.y) < h.radius) { health = Math.max(0, health - 40 * dt); hurtFlashTimer = 0.1; if (health <= 0) triggerDeath("COIL"); }
+            if (h.life <= 0) hazards.splice(i, 1);
         }
-        ctx.restore();
     }
 
     if (!isSucking) { health = Math.max(0, health - 3.5 * dt); if (health <= 0) triggerDeath("STARVED"); }
@@ -706,13 +702,12 @@ function gameLoop(now) {
     const currentTarget = getCurrentTarget();
     const statusText = document.getElementById("status-text");
 
-    // 吸血邏輯：狂吸猛吸倍率改為適中的 1.5 倍
     if (isSucking) {
         suckTick += dt * 18;
         if (!currentTarget) { statusText.innerText = "❌ 咬到衣服或紙張！無法吸血"; statusText.style.color = "#bbb"; }
         else if (currentTarget.category === "BIRTHDAY_BOY") {
             const isFrenzyActive = frenzyActiveTimer > 0 && frenzyStartupTimer <= 0;
-            let frenzyMul = isFrenzyActive ? 1.5 : 1.0; // 調降為 1.5 倍
+            let frenzyMul = isFrenzyActive ? 1.5 : 1.0;
             let rateMod = (muscleTight ? 0.5 : 1.0) * frenzyMul;
             let gain = 22 * rateMod;
             let alertSpd = isFrenzyActive ? 22 : 36;
@@ -749,7 +744,7 @@ function gameLoop(now) {
         }
     } else {
         if (!qteActive && hurtFlashTimer <= 0) {
-            if (windWaveWarning) { statusText.innerText = `⚠️️ 掌風襲來預警！準備按【瞬移】或【隱身】閃避！`; statusText.style.color = "#ff1744"; }
+            if (windWaveWarning) { statusText.innerText = `⚠️ 掌風襲來預警！準備按【瞬移】或【隱身】閃避！`; statusText.style.color = "#ff1744"; }
             else if (currentTarget) {
                 if (currentTarget.category === "BIRTHDAY_BOY") { statusText.innerText = `🟢 鎖定壽星部位：${currentTarget.name} (按住吸血)`; statusText.style.color = "#76ff03"; }
                 else if (currentTarget.category === "FAT_MAN") { statusText.innerText = `⚠️ 這是大胖子！有劇毒千萬別吸！`; statusText.style.color = "#ff5252"; }
@@ -912,7 +907,7 @@ function render(currentTarget, timestamp) {
     for (let bp of bloodPacks) {
         ctx.save(); ctx.translate(bp.x, bp.y);
         const wingFlap = Math.sin(bp.floatPhase * 2.5) * 6;
-        ctx.fillStyle = "rgba(255, 255, 255, 0.6)"; ctx.beginPath(); ctx.ellipse(-14, wingFlap, 9, 4, -0.3, 0, Math.PI * 2); ctx.ellipse(14, wingFlap, 9, 4, 0.3, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = "rgba(255, 255, 255, 0.6)"; ctx.beginPath(); ctx.ellipse(-14, wingFlap, 9, 4, -0.3, 0, Math.PI * 2); ctx.fill();
         ctx.fillStyle = "#d50000"; ctx.strokeStyle = "#fff"; ctx.lineWidth = 2; ctx.beginPath(); ctx.roundRect(-bp.w / 2, -bp.h / 2, bp.w, bp.h, 6); ctx.fill(); ctx.stroke();
         ctx.fillStyle = "#fff"; ctx.fillRect(-3, -8, 6, 16); ctx.fillRect(-8, -3, 16, 6);
         ctx.font = "bold 10px sans-serif"; ctx.fillStyle = "#76ff03"; ctx.textAlign = "center"; ctx.fillText("+35 HP", 0, -18); ctx.restore();
@@ -946,7 +941,7 @@ function render(currentTarget, timestamp) {
     for (let s of blinkShadows) { ctx.save(); ctx.translate(s.x, s.y); if (s.facingRight) ctx.scale(1, 1); else ctx.scale(-1, 1); ctx.globalAlpha = s.alpha * 0.6; if (assets.fly1.complete) ctx.drawImage(assets.fly1, -mosquito.size / 2, -mosquito.size / 2, mosquito.size, mosquito.size); ctx.restore(); }
     for (let p of bloodParticles) { ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2); ctx.fillStyle = p.color ? p.color : `rgba(220, 20, 60, ${p.alpha})`; ctx.fill(); }
 
-    // 繪製蚊子角色
+    // 繪製蚊子角色（加入防消失防黑保底）
     ctx.save();
     ctx.translate(mosquito.x, mosquito.y);
     const curTime = timestamp || performance.now();
@@ -967,40 +962,49 @@ function render(currentTarget, timestamp) {
     } else {
         if (mosquito.facingRight) ctx.scale(1, 1); else ctx.scale(-1, 1);
 
+        // 奧義階段 1：結印 (加入防消失保底：未載入完成則自動退回 fly1)
         if (frenzyStartupTimer > 0) {
             let startupImg = frenzyStartupTimer > 0.25 ? assets.shadow1 : assets.shadow2;
-            if (startupImg.complete) {
-                ctx.drawImage(startupImg, -mosquito.size / 2 - 4, -mosquito.size / 2 - 8, mosquito.size + 8, mosquito.size + 8);
+            let drawImg = startupImg.complete ? startupImg : assets.fly1;
+            if (drawImg.complete) {
+                ctx.drawImage(drawImg, -mosquito.size / 2 - 4, -mosquito.size / 2 - 8, mosquito.size + 8, mosquito.size + 8);
             }
         } 
+        // 奧義階段 2：三隻影分身吸血
         else if (frenzyActiveTimer > 0) {
             ctx.shadowColor = "#ff1744";
             ctx.shadowBlur = 12;
+            let suckImg = assets.suck.complete ? assets.suck : assets.fly1;
 
-            // 左分身
-            ctx.save();
-            ctx.translate(-26, Math.sin(suckTick * 2.0) * 1.5);
-            if (assets.suck.complete) ctx.drawImage(assets.suck, -mosquito.size / 2, -mosquito.size / 2, mosquito.size, mosquito.size);
-            ctx.restore();
+            if (suckImg.complete) {
+                // 左分身
+                ctx.save();
+                ctx.translate(-26, Math.sin(suckTick * 2.0) * 1.5);
+                ctx.drawImage(suckImg, -mosquito.size / 2, -mosquito.size / 2, mosquito.size, mosquito.size);
+                ctx.restore();
 
-            // 右分身
-            ctx.save();
-            ctx.translate(26, Math.cos(suckTick * 2.0) * 1.5);
-            if (assets.suck.complete) ctx.drawImage(assets.suck, -mosquito.size / 2, -mosquito.size / 2, mosquito.size, mosquito.size);
-            ctx.restore();
+                // 右分身
+                ctx.save();
+                ctx.translate(26, Math.cos(suckTick * 2.0) * 1.5);
+                ctx.drawImage(suckImg, -mosquito.size / 2, -mosquito.size / 2, mosquito.size, mosquito.size);
+                ctx.restore();
 
-            // 本體 (中間)
-            ctx.save();
-            ctx.translate(0, Math.sin(suckTick * 2.2) * 1.0);
-            if (assets.suck.complete) ctx.drawImage(assets.suck, -mosquito.size / 2, -mosquito.size / 2, mosquito.size, mosquito.size);
-            ctx.restore();
+                // 本體
+                ctx.save();
+                ctx.translate(0, Math.sin(suckTick * 2.2) * 1.0);
+                ctx.drawImage(suckImg, -mosquito.size / 2, -mosquito.size / 2, mosquito.size, mosquito.size);
+                ctx.restore();
+            }
         } 
+        // 平常吸血與飛行狀態
         else {
             let currentImg = assets.fly1;
             if (isSucking && currentTarget) {
                 if (currentTarget.category === "FAT_MAN") { currentImg = assets.dizzy.complete ? assets.dizzy : assets.fly1; ctx.translate((Math.random() - 0.5) * 3, (Math.random() - 0.5) * 3); }
                 else { currentImg = assets.suck.complete ? assets.suck : assets.fly1; ctx.translate(0, Math.sin(suckTick * 2.0) * 0.8); }
-            } else currentImg = mosquito.frame === 0 ? assets.fly1 : assets.fly2;
+            } else {
+                currentImg = mosquito.frame === 0 ? assets.fly1 : assets.fly2;
+            }
             if (currentImg.complete) ctx.drawImage(currentImg, -mosquito.size / 2, -mosquito.size / 2, mosquito.size, mosquito.size);
         }
     }
@@ -1009,8 +1013,7 @@ function render(currentTarget, timestamp) {
     if (qteActive && !mosquito.isDead) {
         ctx.save(); const offset = slapHandsDist * 160; ctx.fillStyle = "rgba(20, 20, 20, 0.75)";
         ctx.beginPath(); ctx.ellipse(mosquito.x - offset - 40, mosquito.y, 45, 60, 0, 0, Math.PI * 2); ctx.fill();
-        ctx.beginPath(); ctx.ellipse(mosquito.x + offset + 40, mosquito.y, 45, 60, 0, 0, Math.PI * 2); ctx.fill();
-        ctx.restore();
+        ctx.beginPath(); ctx.ellipse(mosquito.x + offset + 40, mosquito.y, 45, 60, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore();
     }
     ctx.restore();
 
