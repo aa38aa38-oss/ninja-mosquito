@@ -258,7 +258,7 @@ function showUnlockFrenzyDialog() {
     isPausedForDialog = true;
     dialogStep = "UNLOCK_FRENZY";
     dialogTitle.innerText = "⚡ 領悟最終奧義！";
-    dialogContent.innerText = "壽星精華液達到 10%！\n你已學會【奧義·大吸特吸🌪️】！\n按下後直接瞬移至壽星身邊，3隻影分身自動狂吸 3 秒！";
+    dialogContent.innerText = "壽星精華液達到 10%！\n你已學會【奧義·大吸特吸🌪️】！\n按下後直接瞬移至壽星身邊，3隻影分身自動吸血 3 秒！";
     dialogBtn1.innerText = "大吸特吸！";
     dialogModal.style.display = "flex";
 }
@@ -579,7 +579,7 @@ function gameLoop(now) {
     birdSpawnTimer += dt; if (birdSpawnTimer > 8.0) { if (birds.length < 1) spawnBird(); birdSpawnTimer = 0; }
     bloodPackSpawnTimer += dt; if (bloodPackSpawnTimer > 5.5) { if (bloodPacks.length < 3) spawnBloodPack(); bloodPackSpawnTimer = 0; }
 
-    // 青蛙判定（半徑收窄至 20px）
+    // 青蛙判定（半徑 20px）
     for (let i = frogs.length - 1; i >= 0; i--) {
         let f = frogs[i];
         f.timer -= dt;
@@ -691,15 +691,16 @@ function gameLoop(now) {
     const currentTarget = getCurrentTarget();
     const statusText = document.getElementById("status-text");
 
+    // 吸血邏輯：大招加成調整為 1.15 倍，維持挑戰性
     if (isSucking) {
         suckTick += dt * 18;
         if (!currentTarget) { statusText.innerText = "❌ 咬到衣服或紙張！無法吸血"; statusText.style.color = "#bbb"; }
         else if (currentTarget.category === "BIRTHDAY_BOY") {
             const isFrenzyActive = frenzyActiveTimer > 0;
-            let frenzyMul = isFrenzyActive ? 1.5 : 1.0;
+            let frenzyMul = isFrenzyActive ? 1.15 : 1.0; // 調降為 1.15 倍
             let rateMod = (muscleTight ? 0.5 : 1.0) * frenzyMul;
             let gain = 22 * rateMod;
-            let alertSpd = isFrenzyActive ? 18 : 36;
+            let alertSpd = 36; // 恢復正常的警備速度，避免遊戲過於簡單
             let prevEssence = essence;
 
             essence = Math.min(100, essence + gain * dt);
@@ -779,7 +780,7 @@ function render(currentTarget, timestamp) {
 
             ctx.beginPath();
             ctx.moveTo(f.targetX - 20, f.targetY); ctx.lineTo(f.targetX + 20, f.targetY);
-            ctx.moveTo(f.targetX, f.targetY - 20); ctx.lineTo(f.targetX, f.targetY + 20);
+            ctx.moveTo(f.targetX, f.targetY - 20); ctx.lineTo(f.targetX + 20, f.targetY);
             ctx.stroke();
         }
 
@@ -899,6 +900,7 @@ function render(currentTarget, timestamp) {
     for (let s of blinkShadows) { ctx.save(); ctx.translate(s.x, s.y); if (s.facingRight) ctx.scale(1, 1); else ctx.scale(-1, 1); ctx.globalAlpha = s.alpha * 0.6; if (assets.fly1.complete) ctx.drawImage(assets.fly1, -mosquito.size / 2, -mosquito.size / 2, mosquito.size, mosquito.size); ctx.restore(); }
     for (let p of bloodParticles) { ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2); ctx.fillStyle = p.color ? p.color : `rgba(220, 20, 60, ${p.alpha})`; ctx.fill(); }
 
+    // 繪製蚊子
     ctx.save();
     ctx.translate(mosquito.x, mosquito.y);
     const curTime = timestamp || performance.now();
