@@ -134,7 +134,6 @@ function resize() { canvas.width = window.innerWidth; canvas.height = window.inn
 window.addEventListener("resize", resize);
 resize();
 
-// 載入全套圖片素材（包含 shadow1, shadow2）
 const assets = {
     bg: new Image(),
     fly1: new Image(),
@@ -187,14 +186,14 @@ let stealthActiveTimer = 0;
 let hasLearnedFrenzy = false;
 let frenzyCooldown = 0;
 let frenzyActiveTimer = 0;
-let frenzyStartupTimer = 0; // 結印前置演出 (0.6秒)
+let frenzyStartupTimer = 0;
 
 let isStageComplete = false;
 let joyVector = { x: 0, y: 0 };
 let bloodParticles = [];
 let blinkShadows = [];
-let featherParticles = []; // 麻雀羽毛特效
-let smokeParticles = [];   // 分身煙霧特效
+let featherParticles = [];
+let smokeParticles = [];
 let showDebugBoxes = false;
 
 let hazards = [];
@@ -239,7 +238,8 @@ function handleBtn1Click(e) {
         dialogModal.style.display = "none";
         isPausedForDialog = false;
     } else if (dialogStep === "ALL_COMPLETE") {
-        window.location.href = "index.html";
+        // 通關後點擊按鈕，跳轉至 ending.html 謝幕畫面
+        window.location.href = "ending.html";
     }
 }
 dialogBtn1.addEventListener("click", handleBtn1Click);
@@ -249,7 +249,7 @@ function showUnlockFrenzyDialog() {
     isPausedForDialog = true;
     dialogStep = "UNLOCK_FRENZY";
     dialogTitle.innerText = "⚡ 領悟最終奧義！";
-    dialogContent.innerText = "壽星精華液達到 10%！\n你已學會【奧義·大吸特吸🌪️】！\n啟動時結印召喚影分身，3隻蚊子進入【3倍暴風吸血狀態】維持 3 秒！";
+    dialogContent.innerText = "壽星精華液達到 10%！\n你已學會【奧義·大吸特吸🌪️】！\n啟動時結印召喚影分身，3隻蚊子進入【2倍暴風吸血狀態】維持 3 秒！";
     dialogBtn1.innerText = "大吸特吸！";
     dialogModal.style.display = "flex";
 }
@@ -260,7 +260,7 @@ function showAllCompleteDialog() {
     dialogStep = "ALL_COMPLETE";
     dialogTitle.innerText = "👑 忍蚊傳說！大獲全勝！";
     dialogContent.innerText = "太狂了！你已經把壽星力維徹底吸乾！\n全部忍術大成，拯救了全場夜宴！";
-    dialogBtn1.innerText = "功成身退 (回首頁)";
+    dialogBtn1.innerText = "前往謝幕與製作團隊";
     dialogModal.style.display = "flex";
 }
 
@@ -418,17 +418,16 @@ function triggerStealth(e) {
 stealthBtn.addEventListener("click", triggerStealth);
 stealthBtn.addEventListener("touchstart", triggerStealth, { passive: false });
 
-// 技能3：奧義·大吸特吸（結印 + 影分身 3秒3倍吸血）
+// 技能3：奧義·大吸特吸（結印 + 影分身 3秒2倍吸血）
 function triggerFrenzy(e) {
     if (e && e.preventDefault) e.preventDefault();
     if (!hasLearnedFrenzy) return;
     if (frenzyCooldown <= 0 && frenzyActiveTimer <= 0 && !mosquito.isDead && !isPausedForDialog) {
         frenzyCooldown = 11.0;
-        frenzyStartupTimer = 0.5; // 前置結印 0.5 秒 (先shadow1再shadow2)
-        frenzyActiveTimer = 3.5;   // 0.5秒結印 + 3.0秒影分身狂吸
+        frenzyStartupTimer = 0.5;
+        frenzyActiveTimer = 3.5;
         mosquito.invincibleTimer = 3.5;
 
-        // 生成忍術分身白煙
         for (let i = 0; i < 24; i++) {
             smokeParticles.push({
                 x: mosquito.x + (Math.random() - 0.5) * 60,
@@ -439,7 +438,7 @@ function triggerFrenzy(e) {
                 alpha: 0.9
             });
         }
-        showDodgeEffect("🌪️ 奧義·大吸特吸！3倍吸血啟動！");
+        showDodgeEffect("🌪️ 奧義·大吸特吸！2倍吸血啟動！");
     }
 }
 frenzyBtn.addEventListener("click", triggerFrenzy);
@@ -458,7 +457,7 @@ function triggerDeath(reason) {
     setTimeout(() => { document.getElementById("game-over-screen").style.display = "flex"; }, 1800);
 }
 
-// 1. 青蛙生成：距離大幅縮短至蚊子身邊 150~220px 內，同框清晰可見
+// 1. 青蛙生成
 function spawnFrog() {
     const angle = Math.random() * Math.PI * 2;
     const dist = Math.random() * 80 + 150;
@@ -477,7 +476,7 @@ function spawnFrog() {
     });
 }
 
-// 2. 麻雀生成：在蚊子周圍 240px 盤旋突擊，同屏可見
+// 2. 麻雀生成
 function spawnBird() {
     const angle = Math.random() * Math.PI * 2;
     const startX = Math.max(60, Math.min(worldWidth - 80, mosquito.x + Math.cos(angle) * 230));
@@ -606,7 +605,6 @@ function gameLoop(now) {
                 b.frameTimer = 0;
             }
 
-            // 麻雀尾部噴出羽毛特效
             if (Math.random() < 0.35) {
                 featherParticles.push({
                     x: b.x, y: b.y,
@@ -700,16 +698,16 @@ function gameLoop(now) {
     const currentTarget = getCurrentTarget();
     const statusText = document.getElementById("status-text");
 
-    // 吸血邏輯（狂吸猛吸 3 秒內 3 倍狂暴吸血）
+    // 吸血邏輯（2倍速）
     if (isSucking) {
         suckTick += dt * 18;
         if (!currentTarget) { statusText.innerText = "❌ 咬到衣服或紙張！無法吸血"; statusText.style.color = "#bbb"; }
         else if (currentTarget.category === "BIRTHDAY_BOY") {
             const isFrenzyActive = frenzyActiveTimer > 0 && frenzyStartupTimer <= 0;
-            let frenzyMul = isFrenzyActive ? 3.0 : 1.0; // 3 倍狂暴吸血！
+            let frenzyMul = isFrenzyActive ? 2.0 : 1.0;
             let rateMod = (muscleTight ? 0.5 : 1.0) * frenzyMul;
             let gain = 22 * rateMod;
-            let alertSpd = isFrenzyActive ? 15 : 36; // 影分身時不易被察覺
+            let alertSpd = isFrenzyActive ? 18 : 36;
             let prevEssence = essence;
 
             essence = Math.min(100, essence + gain * dt);
@@ -728,7 +726,7 @@ function gameLoop(now) {
                 showAllCompleteDialog();
             }
 
-            statusText.innerText = isFrenzyActive ? `🌪️ 【影分身狂吸中】3倍精華液暴風汲取！` : `🩸 汲取【${currentTarget.name}】精華液中！`;
+            statusText.innerText = isFrenzyActive ? `🌪️ 【影分身狂吸中】2倍精華液暴風汲取！` : `🩸 汲取【${currentTarget.name}】精華液中！`;
             statusText.style.color = isFrenzyActive ? "#ff1744" : "#ff1744";
 
             if (Math.random() < 0.6) _spawnBlood(mosquito.facingRight ? 11 : -11, 16, true);
@@ -791,11 +789,10 @@ function render(currentTarget, timestamp) {
         }
     }
 
-    // 1. 青蛙特效彈道（帶毒液波浪長舌）
+    // 1. 青蛙特效彈道
     for (let f of frogs) {
         ctx.save();
         if (f.state === "AIM") {
-            // 瞄準鎖定特效環
             ctx.strokeStyle = "rgba(255, 235, 59, 0.85)";
             ctx.lineWidth = 2.5;
             ctx.setLineDash([5, 5]);
@@ -803,7 +800,6 @@ function render(currentTarget, timestamp) {
             ctx.arc(f.targetX, f.targetY, 20 + Math.sin(performance.now() / 80) * 4, 0, Math.PI * 2);
             ctx.stroke();
 
-            // 準星十字
             ctx.beginPath();
             ctx.moveTo(f.targetX - 28, f.targetY); ctx.lineTo(f.targetX + 28, f.targetY);
             ctx.moveTo(f.targetX, f.targetY - 28); ctx.lineTo(f.targetX, f.targetY + 28);
@@ -813,7 +809,6 @@ function render(currentTarget, timestamp) {
         if (f.state === "STRIKE") {
             if (assets.frog2.complete) ctx.drawImage(assets.frog2, f.x, f.y, f.w + 20, f.h);
 
-            // 具有彈性彎曲的黏液波浪長舌
             const midX = (f.x + 40 + f.targetX) / 2 + Math.sin(f.timer * 30) * 18;
             const midY = (f.y + 25 + f.targetY) / 2 + Math.cos(f.timer * 30) * 18;
 
@@ -825,12 +820,10 @@ function render(currentTarget, timestamp) {
             ctx.quadraticCurveTo(midX, midY, f.targetX, f.targetY);
             ctx.stroke();
 
-            // 舌面黏液亮光
             ctx.strokeStyle = "#ff8a80";
             ctx.lineWidth = 3;
             ctx.stroke();
 
-            // 舌尖毒液水花
             ctx.fillStyle = "#76ff03";
             ctx.beginPath();
             ctx.arc(f.targetX, f.targetY, 7, 0, Math.PI * 2);
@@ -841,11 +834,10 @@ function render(currentTarget, timestamp) {
         ctx.restore();
     }
 
-    // 2. 麻雀特效彈道（風刃氣流與羽毛）
+    // 2. 麻雀特效彈道
     for (let b of birds) {
         ctx.save();
         if (b.warnTimer > 0) {
-            // 風刃預警路徑
             ctx.strokeStyle = "rgba(255, 61, 0, 0.75)";
             ctx.lineWidth = 3;
             ctx.setLineDash([8, 6]);
@@ -854,12 +846,10 @@ function render(currentTarget, timestamp) {
             ctx.lineTo(b.destX, b.destY);
             ctx.stroke();
 
-            // 警告浮動文字
             ctx.font = "bold 13px sans-serif";
             ctx.fillStyle = "#ff3d00";
             ctx.fillText("🌪️ 麻雀俯衝！", b.x - 30, b.y - 12);
         } else {
-            // 俯衝破空氣流波紋
             ctx.strokeStyle = "rgba(255, 255, 255, 0.4)";
             ctx.lineWidth = 4;
             ctx.beginPath();
@@ -876,7 +866,7 @@ function render(currentTarget, timestamp) {
         ctx.restore();
     }
 
-    // 繪製掉落羽毛粒子
+    // 羽毛粒子
     for (let f of featherParticles) {
         ctx.save();
         ctx.fillStyle = `rgba(188, 170, 153, ${f.alpha})`;
@@ -886,7 +876,7 @@ function render(currentTarget, timestamp) {
         ctx.restore();
     }
 
-    // 繪製忍術白煙粒子
+    // 忍術煙霧粒子
     for (let s of smokeParticles) {
         ctx.save();
         ctx.fillStyle = `rgba(240, 240, 255, ${s.alpha})`;
@@ -963,7 +953,7 @@ function render(currentTarget, timestamp) {
     for (let s of blinkShadows) { ctx.save(); ctx.translate(s.x, s.y); if (s.facingRight) ctx.scale(1, 1); else ctx.scale(-1, 1); ctx.globalAlpha = s.alpha * 0.6; if (assets.fly1.complete) ctx.drawImage(assets.fly1, -mosquito.size / 2, -mosquito.size / 2, mosquito.size, mosquito.size); ctx.restore(); }
     for (let p of bloodParticles) { ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2); ctx.fillStyle = p.color ? p.color : `rgba(220, 20, 60, ${p.alpha})`; ctx.fill(); }
 
-    // ---------------- 繪製蚊子本體、結印與三隻影分身吸血 ----------------
+    // 繪製蚊子角色
     ctx.save();
     ctx.translate(mosquito.x, mosquito.y);
     const curTime = timestamp || performance.now();
@@ -984,11 +974,11 @@ function render(currentTarget, timestamp) {
     } else {
         if (mosquito.facingRight) ctx.scale(1, 1); else ctx.scale(-1, 1);
 
-        // 奧義階段 1：結印演出 (先shadow1再shadow2)
+        // 奧義階段 1：結印 (先shadow1再shadow2)[cite: 18, 19]
         if (frenzyStartupTimer > 0) {
-            let startupImg = frenzyStartupTimer > 0.25 ? assets.shadow1 : assets.shadow2;
+            let startupImg = frenzyStartupTimer > 0.25 ? assets.shadow1 : assets.shadow2;[cite: 18, 19]
             if (startupImg.complete) {
-                ctx.drawImage(startupImg, -mosquito.size / 2 - 4, -mosquito.size / 2 - 8, mosquito.size + 8, mosquito.size + 8);
+                ctx.drawImage(startupImg, -mosquito.size / 2 - 4, -mosquito.size / 2 - 8, mosquito.size + 8, mosquito.size + 8);[cite: 18, 19]
             }
         } 
         // 奧義階段 2：三隻影分身同時進入吸血狀態 (維持 3 秒)
@@ -1029,7 +1019,8 @@ function render(currentTarget, timestamp) {
     if (qteActive && !mosquito.isDead) {
         ctx.save(); const offset = slapHandsDist * 160; ctx.fillStyle = "rgba(20, 20, 20, 0.75)";
         ctx.beginPath(); ctx.ellipse(mosquito.x - offset - 40, mosquito.y, 45, 60, 0, 0, Math.PI * 2); ctx.fill();
-        ctx.beginPath(); ctx.ellipse(mosquito.x + offset + 40, mosquito.y, 45, 60, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+        ctx.beginPath(); ctx.ellipse(mosquito.x + offset + 40, mosquito.y, 45, 60, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
     }
     ctx.restore();
 
