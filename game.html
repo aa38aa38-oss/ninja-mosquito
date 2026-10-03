@@ -505,10 +505,12 @@ let hazardSpawnTimer = 0;
 let bloodPacks = [];
 let bloodPackSpawnTimer = 0;
 
+// 掌風機制：大幅加長前搖時間
 let windWaveTimer = 0;
 let windWaveActive = false;
 let windWaveX = -200;
 let windWaveWarning = false;
+let windWaveWarningTimer = 0; // 前搖倒數計時
 let screenShakeTimer = 0;
 let hurtFlashTimer = 0;
 let qteActive = false;
@@ -634,6 +636,7 @@ function resetGame() {
     hurtFlashTimer = 0;
     windWaveActive = false;
     windWaveWarning = false;
+    windWaveWarningTimer = 0;
     hazards = [];
     bloodPacks = [];
     bloodPackSpawnTimer = 0;
@@ -675,7 +678,6 @@ function updateBlinkBtnUI() {
     }
 }
 
-// 精準熱區配置
 function getCharacterAreas() {
     return [
         { category: "BIRTHDAY_BOY", name: "壽星臉部", x: 385, y: 30, w: 130, h: 160 },
@@ -831,7 +833,7 @@ function triggerBlink(e) {
 
         mosquito.x += dirX * blinkDist;
         mosquito.y += dirY * blinkDist;
-        mosquito.invincibleTimer = 0.45;
+        mosquito.invincibleTimer = 0.5;
 
         mosquito.x = Math.max(25, Math.min(worldWidth - 25, mosquito.x));
         mosquito.y = Math.max(25, Math.min(worldHeight - 25, mosquito.y));
@@ -962,7 +964,6 @@ function gameLoop(now) {
     const dt = (now - lastTime) / 1000;
     lastTime = now;
 
-    // 暫停狀態：維持正常刷新畫面與循環，不卡死
     if (isPausedForDialog) {
         render(null, now);
         requestAnimationFrame(gameLoop);
@@ -1109,16 +1110,21 @@ function gameLoop(now) {
         alertVal = Math.max(0, alertVal - 10 * dt);
     }
 
-    // 暴露值 40% 掌風
+    // ---------------- 掌風機制：大幅加長前搖 (1.2 秒充足準備時間) ----------------
     if (alertVal >= 40) {
         windWaveTimer += dt;
-        if (windWaveTimer > 2.45 && !windWaveActive) {
+        
+        // 提早 1.2 秒啟動前搖警示！
+        if (windWaveTimer >= 2.0 && !windWaveActive) {
             windWaveWarning = true;
+            windWaveWarningTimer = 3.2 - windWaveTimer; // 倒數計時
         }
-        if (windWaveTimer > 2.8) {
+        
+        // 前搖結束，掌風正式掃過
+        if (windWaveTimer >= 3.2) {
             windWaveActive = true;
             windWaveWarning = false;
-            windWaveX = mosquito.x - 320;
+            windWaveX = mosquito.x - 340;
             windWaveTimer = 0;
         }
     } else {
@@ -1183,14 +1189,12 @@ function gameLoop(now) {
             alertVal = Math.min(100, alertVal + alertSpd * dt);
             health = Math.min(100, health + 14 * dt);
             
-            // 暴露值首次達 10% 彈窗提示 (修復中斷 Bug)
             if (prevAlert < 10 && alertVal >= 10 && !hasPromptedAlert10) {
                 hasPromptedAlert10 = true;
                 stopSuck();
                 showAlert10Dialog();
             }
 
-            // 壽星精華液達 10% 解鎖瞬移
             if (prevEssence < 10 && essence >= 10 && !hasLearnedBlink) {
                 hasLearnedBlink = true;
                 updateBlinkBtnUI();
@@ -1198,7 +1202,6 @@ function gameLoop(now) {
                 showUnlockBlinkDialog();
             }
 
-            // 壽星精華液吸滿 100% 過關勝利
             if (essence >= 100 && !isStageComplete) {
                 stopSuck();
                 showWinDialog();
@@ -1232,8 +1235,8 @@ function gameLoop(now) {
     } else {
         if (!qteActive && hurtFlashTimer <= 0) {
             if (windWaveWarning) {
-                statusText.innerText = hasLearnedBlink ? "⚠️ 掌風襲來！快按【瞬移⚡】閃避！" : "⚠️ 掌風襲來！小心被拍扁！";
-                statusText.style.color = "#00e5ff";
+                statusText.innerText = hasLearnedBlink ? "⚠️ 掌風襲來預警！準備按【瞬移⚡】閃避！" : "⚠️ 掌風襲來預警！小心被重創！";
+                statusText.style.color = "#ff1744";
             } else if (currentTarget) {
                 if (currentTarget.category === "BIRTHDAY_BOY") {
                     statusText.innerText = `🟢 鎖定壽星部位：${currentTarget.name} (按住吸血)`;
@@ -1423,20 +1426,40 @@ function render(currentTarget, timestamp) {
         ctx.restore();
     }
 
+    // ---------------- 強化版：掌風襲來 1.2 秒長前搖與動態危險軌道 ----------------
     if (windWaveWarning) {
         ctx.save();
-        ctx.strokeStyle = "rgba(0, 229, 255, 0.75)";
-        ctx.lineWidth = 2;
-        ctx.setLineDash([6, 6]);
+        const curTime = timestamp || performance.now();
+        const pulseAlpha = 0.25 + Math.sin(curTime / 100) * 0.15;
+
+        // 1. 掌風整條即將橫掃的「紅色危險警戒區域軌道」
+        ctx.fillStyle = `rgba(255, 23, 68, ${pulseAlpha})`;
+        ctx.fillRect(mosquito.x - 120, 0, 90, worldHeight);
+
+        // 2. 邊緣粗紅警示虛線
+        ctx.strokeStyle = "rgba(255, 23, 68, 0.9)";
+        ctx.lineWidth = 3;
+        ctx.setLineDash([8, 6]);
         ctx.beginPath();
         ctx.moveTo(mosquito.x - 120, 0);
         ctx.lineTo(mosquito.x - 120, worldHeight);
+        ctx.moveTo(mosquito.x - 30, 0);
+        ctx.lineTo(mosquito.x - 30, worldHeight);
         ctx.stroke();
 
-        ctx.font = "bold 13px sans-serif";
-        ctx.fillStyle = "#00e5ff";
+        // 3. 醒目帶黑邊的文字提示牌
+        ctx.setLineDash([]);
+        ctx.font = "bold 14px sans-serif";
         ctx.textAlign = "center";
-        ctx.fillText(hasLearnedBlink ? "⚠️ 掌風襲來！按【瞬移⚡】避險！" : "⚠️ 掌風襲來！", mosquito.x, mosquito.y - 35);
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = "rgba(0, 0, 0, 0.9)";
+        const warnText = hasLearnedBlink 
+            ? `⚠️ 掌風襲來 (${windWaveWarningTimer.toFixed(1)}s)！按【瞬移⚡】閃避！` 
+            : `⚠️ 掌風襲來 (${windWaveWarningTimer.toFixed(1)}s)！快閃開！`;
+        
+        ctx.strokeText(warnText, mosquito.x, mosquito.y - 36);
+        ctx.fillStyle = "#ff1744";
+        ctx.fillText(warnText, mosquito.x, mosquito.y - 36);
         ctx.restore();
     }
 
