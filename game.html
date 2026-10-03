@@ -5,54 +5,351 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>忍者蚊子 - 幫力維吸出來</title>
     <style>
-        * { box-sizing: border-box; user-select: none; -webkit-user-select: none; margin: 0; padding: 0; }
-        body, html { width: 100%; height: 100%; overflow: hidden; background-color: #000; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-        #game-container { position: relative; width: 100vw; height: 100vh; overflow: hidden; }
-        canvas { display: block; width: 100%; height: 100%; }
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            margin: 0;
+            padding: 0;
+        }
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #000;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
 
-        #hud { position: absolute; top: env(safe-area-inset-top, 15px); left: 20px; width: 280px; max-width: 65vw; color: #fff; text-shadow: 2px 2px 4px #000; pointer-events: none; z-index: 30; }
-        #status-text { font-size: 15px; font-weight: bold; color: #ffeb3b; margin-bottom: 6px; white-space: nowrap; }
-        .bar-container { margin-bottom: 4px; }
-        .bar-label { font-size: 11px; margin-bottom: 2px; color: #ddd; }
-        .progress-bg { width: 100%; height: 10px; background: rgba(0, 0, 0, 0.65); border: 1px solid rgba(255, 255, 255, 0.35); border-radius: 5px; overflow: hidden; }
-        #essence-bar { width: 0%; height: 100%; background: linear-gradient(90deg, #ff1744, #ff5252); }
-        #health-bar { width: 100%; height: 100%; background: linear-gradient(90deg, #43a047, #76ff03); transition: width 0.08s ease-out; }
-        #alert-bar { width: 0%; height: 100%; background: linear-gradient(90deg, #ff9100, #d50000); transition: width 0.08s linear; }
+        /* 頂部 HUD */
+        #hud {
+            position: absolute;
+            top: env(safe-area-inset-top, 15px);
+            left: 20px;
+            width: 280px;
+            max-width: 65vw;
+            color: #fff;
+            text-shadow: 2px 2px 4px #000;
+            pointer-events: none;
+            z-index: 30;
+        }
+        #status-text {
+            font-size: 15px;
+            font-weight: bold;
+            color: #ffeb3b;
+            margin-bottom: 6px;
+            white-space: nowrap;
+        }
+        .bar-container {
+            margin-bottom: 4px;
+        }
+        .bar-label {
+            font-size: 11px;
+            margin-bottom: 2px;
+            color: #ddd;
+        }
+        .progress-bg {
+            width: 100%;
+            height: 10px;
+            background: rgba(0, 0, 0, 0.65);
+            border: 1px solid rgba(255, 255, 255, 0.35);
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        #essence-bar {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, #ff1744, #ff5252);
+        }
+        #health-bar {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, #43a047, #76ff03);
+            transition: width 0.08s ease-out;
+        }
+        #alert-bar {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, #ff9100, #d50000);
+            transition: width 0.08s linear;
+        }
 
-        #debug-btn { position: absolute; top: env(safe-area-inset-top, 15px); right: 20px; padding: 6px 12px; background: rgba(0, 0, 0, 0.6); border: 1px solid rgba(255, 255, 255, 0.5); border-radius: 14px; color: #fff; font-size: 12px; z-index: 35; cursor: pointer; }
+        /* 劇情/教學/勝利對話框 */
+        #dialog-modal {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 86%;
+            max-width: 380px;
+            background: rgba(18, 18, 28, 0.96);
+            border: 2px solid #ffd54f;
+            border-radius: 18px;
+            padding: 22px 20px;
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            z-index: 90;
+            box-shadow: 0 0 25px rgba(255, 213, 79, 0.4);
+            backdrop-filter: blur(10px);
+        }
+        #dialog-title {
+            color: #ffd54f;
+            font-size: 19px;
+            font-weight: 900;
+            margin-bottom: 12px;
+            text-align: center;
+        }
+        #dialog-content {
+            font-size: 15px;
+            line-height: 1.6;
+            color: #eee;
+            margin-bottom: 18px;
+            text-align: center;
+            white-space: pre-line;
+        }
+        .dialog-btn-group {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            width: 100%;
+        }
+        .dialog-action-btn {
+            padding: 10px 24px;
+            background: linear-gradient(135deg, #ffb300, #ff6f00);
+            border: none;
+            border-radius: 22px;
+            color: #fff;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 0 12px rgba(255, 179, 0, 0.6);
+        }
+        .dialog-action-btn.secondary {
+            background: rgba(60, 60, 75, 0.9);
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+        }
 
-        #dialog-modal { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 86%; max-width: 380px; background: rgba(18, 18, 28, 0.96); border: 2px solid #ffd54f; border-radius: 18px; padding: 22px 20px; color: #fff; display: flex; flex-direction: column; align-items: center; z-index: 90; box-shadow: 0 0 25px rgba(255, 213, 79, 0.4); backdrop-filter: blur(10px); }
-        #dialog-title { color: #ffd54f; font-size: 19px; font-weight: 900; margin-bottom: 12px; text-align: center; }
-        #dialog-content { font-size: 15px; line-height: 1.6; color: #eee; margin-bottom: 18px; text-align: center; white-space: pre-line; }
-        .dialog-btn-group { display: flex; gap: 12px; justify-content: center; width: 100%; }
-        .dialog-action-btn { padding: 10px 24px; background: linear-gradient(135deg, #ffb300, #ff6f00); border: none; border-radius: 22px; color: #fff; font-size: 15px; font-weight: bold; cursor: pointer; box-shadow: 0 0 12px rgba(255, 179, 0, 0.6); }
-        .dialog-action-btn.secondary { background: rgba(60, 60, 75, 0.9); box-shadow: 0 0 10px rgba(0, 0, 0, 0.5); border: 1px solid rgba(255, 255, 255, 0.4); }
+        #qte-overlay {
+            position: absolute;
+            top: 25%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #ff1744;
+            font-size: 26px;
+            font-weight: 900;
+            text-shadow: 0 0 10px #000, 0 0 20px #ff1744;
+            display: none;
+            z-index: 45;
+            pointer-events: none;
+            animation: pulse 0.15s infinite alternate;
+            text-align: center;
+        }
+        @keyframes pulse {
+            0% { transform: translate(-50%, -50%) scale(1.0); }
+            100% { transform: translate(-50%, -50%) scale(1.15); }
+        }
 
-        #qte-overlay { position: absolute; top: 25%; left: 50%; transform: translate(-50%, -50%); color: #ff1744; font-size: 26px; font-weight: 900; text-shadow: 0 0 10px #000, 0 0 20px #ff1744; display: none; z-index: 45; pointer-events: none; animation: pulse 0.15s infinite alternate; text-align: center; }
-        @keyframes pulse { 0% { transform: translate(-50%, -50%) scale(1.0); } 100% { transform: translate(-50%, -50%) scale(1.15); } }
-        #dodge-popup { position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%) scale(0.8); color: #00e5ff; font-size: 32px; font-weight: 900; font-style: italic; text-shadow: 0 0 10px #000, 0 0 20px #00e5ff; display: none; z-index: 48; pointer-events: none; transition: transform 0.2s ease-out, opacity 0.3s ease-out; }
+        #dodge-popup {
+            position: absolute;
+            top: 40%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.8);
+            color: #00e5ff;
+            font-size: 32px;
+            font-weight: 900;
+            font-style: italic;
+            text-shadow: 0 0 10px #000, 0 0 20px #00e5ff;
+            display: none;
+            z-index: 48;
+            pointer-events: none;
+            transition: transform 0.2s ease-out, opacity 0.3s ease-out;
+        }
 
-        #touch-left-zone { position: absolute; top: 0; left: 0; width: 55vw; height: 100vh; z-index: 10; touch-action: none; }
-        #arena-joystick { position: absolute; width: 140px; height: 140px; margin-left: -70px; margin-top: -70px; border-radius: 50%; background: radial-gradient(circle, rgba(255, 255, 255, 0.08) 0%, rgba(0, 0, 0, 0.45) 80%); border: 2px solid rgba(255, 255, 255, 0.3); box-shadow: 0 0 15px rgba(0, 0, 0, 0.6), inset 0 0 10px rgba(255, 255, 255, 0.1); pointer-events: none; display: none; z-index: 15; }
-        #arena-knob { position: absolute; width: 56px; height: 56px; top: 42px; left: 42px; border-radius: 50%; background: radial-gradient(circle, rgba(255, 255, 255, 0.9) 0%, rgba(200, 200, 200, 0.6) 100%); border: 2px solid rgba(255, 255, 255, 0.8); box-shadow: 0 0 12px rgba(255, 255, 255, 0.5); pointer-events: none; }
+        /* 左側搖桿區 */
+        #touch-left-zone {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 55vw;
+            height: 100vh;
+            z-index: 10;
+            touch-action: none;
+        }
+        #arena-joystick {
+            position: absolute;
+            width: 140px;
+            height: 140px;
+            margin-left: -70px;
+            margin-top: -70px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.08) 0%, rgba(0, 0, 0, 0.45) 80%);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.6), inset 0 0 10px rgba(255, 255, 255, 0.1);
+            pointer-events: none;
+            display: none;
+            z-index: 15;
+        }
+        #arena-knob {
+            position: absolute;
+            width: 56px;
+            height: 56px;
+            top: 42px;
+            left: 42px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.9) 0%, rgba(200, 200, 200, 0.6) 100%);
+            border: 2px solid rgba(255, 255, 255, 0.8);
+            box-shadow: 0 0 12px rgba(255, 255, 255, 0.5);
+            pointer-events: none;
+        }
 
-        #arena-action-pad { position: absolute; right: 15px; bottom: 20px; width: 220px; height: 220px; z-index: 25; touch-action: none; pointer-events: none; }
-        #suck-btn { position: absolute; right: 15px; bottom: 15px; width: 86px; height: 86px; border-radius: 50%; background: radial-gradient(circle, rgba(229, 57, 53, 0.9) 0%, rgba(183, 28, 28, 0.95) 100%); border: 3px solid rgba(255, 138, 128, 0.85); box-shadow: 0 0 20px rgba(211, 47, 47, 0.7); color: #fff; font-size: 17px; font-weight: 900; display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; pointer-events: auto; transition: transform 0.08s ease; }
-        #suck-btn:active, #suck-btn.pressed { transform: scale(0.92); background: radial-gradient(circle, rgba(255, 23, 68, 1) 0%, rgba(213, 0, 0, 1) 100%); }
-        .skill-btn { position: absolute; width: 58px; height: 58px; border-radius: 50%; color: #fff; font-size: 13px; font-weight: bold; display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; pointer-events: auto; backdrop-filter: blur(4px); transition: transform 0.08s ease, filter 0.2s ease; }
-        .skill-btn:active { transform: scale(0.9); }
-        #blink-btn { right: 110px; bottom: 30px; background: radial-gradient(circle, rgba(0, 176, 255, 0.85) 0%, rgba(0, 145, 234, 0.95) 100%); border: 2px solid rgba(128, 222, 234, 0.9); box-shadow: 0 0 14px rgba(0, 176, 255, 0.6); }
-        #skill-slot2 { right: 105px; bottom: 105px; background: radial-gradient(circle, rgba(66, 66, 66, 0.8) 0%, rgba(33, 33, 33, 0.9) 100%); border: 2px solid rgba(255, 255, 255, 0.35); }
-        #skill-slot3 { right: 30px; bottom: 115px; background: radial-gradient(circle, rgba(66, 66, 66, 0.8) 0%, rgba(33, 33, 33, 0.9) 100%); border: 2px solid rgba(255, 255, 255, 0.35); }
-        .skill-locked { filter: grayscale(1); opacity: 0.55 !important; cursor: not-allowed; }
+        /* 傳說對決風格右側面板 */
+        #arena-action-pad {
+            position: absolute;
+            right: 15px;
+            bottom: 20px;
+            width: 220px;
+            height: 220px;
+            z-index: 25;
+            touch-action: none;
+            pointer-events: none;
+        }
+        #suck-btn {
+            position: absolute;
+            right: 15px;
+            bottom: 15px;
+            width: 86px;
+            height: 86px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(229, 57, 53, 0.9) 0%, rgba(183, 28, 28, 0.95) 100%);
+            border: 3px solid rgba(255, 138, 128, 0.85);
+            box-shadow: 0 0 20px rgba(211, 47, 47, 0.7);
+            color: #fff;
+            font-size: 17px;
+            font-weight: 900;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            pointer-events: auto;
+            transition: transform 0.08s ease;
+        }
+        #suck-btn:active, #suck-btn.pressed {
+            transform: scale(0.92);
+            background: radial-gradient(circle, rgba(255, 23, 68, 1) 0%, rgba(213, 0, 0, 1) 100%);
+        }
+        .skill-btn {
+            position: absolute;
+            width: 58px;
+            height: 58px;
+            border-radius: 50%;
+            color: #fff;
+            font-size: 13px;
+            font-weight: bold;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            pointer-events: auto;
+            backdrop-filter: blur(4px);
+            transition: transform 0.08s ease, filter 0.2s ease;
+        }
+        .skill-btn:active {
+            transform: scale(0.9);
+        }
+        #blink-btn {
+            right: 110px;
+            bottom: 30px;
+            background: radial-gradient(circle, rgba(0, 176, 255, 0.85) 0%, rgba(0, 145, 234, 0.95) 100%);
+            border: 2px solid rgba(128, 222, 234, 0.9);
+            box-shadow: 0 0 14px rgba(0, 176, 255, 0.6);
+        }
+        #skill-slot2 {
+            right: 105px;
+            bottom: 105px;
+            background: radial-gradient(circle, rgba(66, 66, 66, 0.8) 0%, rgba(33, 33, 33, 0.9) 100%);
+            border: 2px solid rgba(255, 255, 255, 0.35);
+        }
+        #skill-slot3 {
+            right: 30px;
+            bottom: 115px;
+            background: radial-gradient(circle, rgba(66, 66, 66, 0.8) 0%, rgba(33, 33, 33, 0.9) 100%);
+            border: 2px solid rgba(255, 255, 255, 0.35);
+        }
+        .skill-locked {
+            filter: grayscale(1);
+            opacity: 0.55 !important;
+            cursor: not-allowed;
+        }
 
-        #game-over-screen { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.88); display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 95; color: #fff; backdrop-filter: blur(5px); }
-        #death-title { font-size: 38px; font-weight: 900; color: #ff1744; letter-spacing: 2px; margin-bottom: 12px; text-shadow: 0 0 15px rgba(255, 23, 68, 0.8); }
-        #death-reason { font-size: 16px; color: #eee; margin-bottom: 25px; max-width: 80%; text-align: center; line-height: 1.5; }
-        .game-over-btn-group { display: flex; gap: 15px; }
-        .over-btn { padding: 12px 30px; font-size: 16px; font-weight: bold; color: #fff; border-radius: 28px; cursor: pointer; transition: transform 0.1s ease; text-align: center; }
-        #retry-btn { background: linear-gradient(135deg, #d50000, #ff5252); border: 2px solid #fff; box-shadow: 0 0 15px rgba(255, 82, 82, 0.6); }
-        #home-btn { background: rgba(40, 40, 50, 0.85); border: 2px solid rgba(255, 255, 255, 0.6); }
+        #game-over-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.88);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 95;
+            color: #fff;
+            backdrop-filter: blur(5px);
+        }
+        #death-title {
+            font-size: 38px;
+            font-weight: 900;
+            color: #ff1744;
+            letter-spacing: 2px;
+            margin-bottom: 12px;
+            text-shadow: 0 0 15px rgba(255, 23, 68, 0.8);
+        }
+        #death-reason {
+            font-size: 16px;
+            color: #eee;
+            margin-bottom: 25px;
+            max-width: 80%;
+            text-align: center;
+            line-height: 1.5;
+        }
+        .game-over-btn-group {
+            display: flex;
+            gap: 15px;
+        }
+        .over-btn {
+            padding: 12px 30px;
+            font-size: 16px;
+            font-weight: bold;
+            color: #fff;
+            border-radius: 28px;
+            cursor: pointer;
+            transition: transform 0.1s ease;
+            text-align: center;
+        }
+        #retry-btn {
+            background: linear-gradient(135deg, #d50000, #ff5252);
+            border: 2px solid #fff;
+            box-shadow: 0 0 15px rgba(255, 82, 82, 0.6);
+        }
+        #home-btn {
+            background: rgba(40, 40, 50, 0.85);
+            border: 2px solid rgba(255, 255, 255, 0.6);
+        }
     </style>
 </head>
 <body>
@@ -60,6 +357,7 @@
 <div id="game-container">
     <canvas id="gameCanvas"></canvas>
 
+    <!-- 對話引導彈窗 -->
     <div id="dialog-modal">
         <div id="dialog-title">任務指引</div>
         <div id="dialog-content">任務內容: 幫力維吸出來，請將壽星精華液吸滿</div>
@@ -74,7 +372,6 @@
         <div id="arena-knob"></div>
     </div>
 
-    <div id="debug-btn">👁 顯示熱區</div>
     <div id="qte-overlay">⚠️ 巨掌合圍！按【瞬移⚡】閃避！</div>
     <div id="dodge-popup">⚡ DODGE! 完美閃避！</div>
 
@@ -94,6 +391,7 @@
         </div>
     </div>
 
+    <!-- 傳說對決風格右側面板 -->
     <div id="arena-action-pad">
         <div id="suck-btn">
             <span>💉</span>
@@ -127,11 +425,20 @@
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
-function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+}
 window.addEventListener("resize", resize);
 resize();
 
-const assets = { bg: new Image(), fly1: new Image(), fly2: new Image(), suck: new Image(), dizzy: new Image() };
+const assets = {
+    bg: new Image(),
+    fly1: new Image(),
+    fly2: new Image(),
+    suck: new Image(),
+    dizzy: new Image()
+};
 assets.bg.src = "bg_level1.png";
 assets.fly1.src = "mosquito_fly_1.png";
 assets.fly2.src = "mosquito_fly_2.png";
@@ -147,7 +454,18 @@ assets.bg.onload = function() {
 };
 
 const camera = { x: 0, y: 0, zoom: 3.8 };
-const mosquito = { x: 450, y: 230, size: 32, speed: 260, facingRight: true, frame: 0, frameTimer: 0, isDead: false, deathType: "", invincibleTimer: 0 };
+const mosquito = {
+    x: 450,
+    y: 230,
+    size: 32,
+    speed: 260,
+    facingRight: true,
+    frame: 0,
+    frameTimer: 0,
+    isDead: false,
+    deathType: "",
+    invincibleTimer: 0
+};
 
 let essence = 0;
 let health = 100;
@@ -162,7 +480,6 @@ let joyVector = { x: 0, y: 0 };
 
 let bloodParticles = [];
 let blinkShadows = [];
-let showDebugBoxes = false;
 
 let hazards = [];
 let hazardSpawnTimer = 0;
@@ -270,20 +587,40 @@ function showWinDialog() {
     dialogModal.style.display = "flex";
 }
 
-document.getElementById("debug-btn").addEventListener("click", () => {
-    showDebugBoxes = !showDebugBoxes;
-    document.getElementById("debug-btn").innerText = showDebugBoxes ? "關閉熱區" : "👁 顯示熱區";
-});
-
 function resetGame() {
-    mosquito.x = 450; mosquito.y = 230; mosquito.isDead = false; mosquito.deathType = ""; mosquito.invincibleTimer = 0;
-    essence = 0; health = 100; alertVal = 0; isSucking = false; blinkCooldown = 0; hasLearnedBlink = false; hasPromptedAlert10 = false; isStageComplete = false;
+    mosquito.x = 450;
+    mosquito.y = 230;
+    mosquito.isDead = false;
+    mosquito.deathType = "";
+    mosquito.invincibleTimer = 0;
+    essence = 0;
+    health = 100;
+    alertVal = 0;
+    isSucking = false;
+    blinkCooldown = 0;
+    hasLearnedBlink = false;
+    hasPromptedAlert10 = false;
+    isStageComplete = false;
     updateBlinkBtnUI();
-    qteActive = false; qteTimer = 0; slapHandsDist = 1.0; deathAnimTimer = 0; soulY = 0; hurtFlashTimer = 0; windWaveActive = false; windWaveWarning = false; windWaveWarningTimer = 0;
-    hazards = []; bloodPacks = []; bloodPackSpawnTimer = 0; hazardSpawnTimer = 0; bloodParticles = []; blinkShadows = [];
+    qteActive = false;
+    qteTimer = 0;
+    slapHandsDist = 1.0;
+    deathAnimTimer = 0;
+    soulY = 0;
+    hurtFlashTimer = 0;
+    windWaveActive = false;
+    windWaveWarning = false;
+    windWaveWarningTimer = 0;
+    hazards = [];
+    bloodPacks = [];
+    bloodPackSpawnTimer = 0;
+    hazardSpawnTimer = 0;
+    bloodParticles = [];
+    blinkShadows = [];
     document.getElementById("qte-overlay").style.display = "none";
     document.getElementById("dodge-popup").style.display = "none";
     document.getElementById("game-over-screen").style.display = "none";
+
     isPausedForDialog = true;
     dialogStep = 1;
     dialogTitle.innerText = "任務指引";
@@ -294,7 +631,9 @@ function resetGame() {
 }
 
 document.getElementById("retry-btn").addEventListener("click", resetGame);
-document.getElementById("home-btn").addEventListener("click", () => { window.location.href = "index.html"; });
+document.getElementById("home-btn").addEventListener("click", () => {
+    window.location.href = "index.html";
+});
 
 function updateBlinkBtnUI() {
     const blinkBtn = document.getElementById("blink-btn");
@@ -333,7 +672,10 @@ function getCharacterAreas() {
 function getCurrentTarget() {
     const areas = getCharacterAreas();
     for (let a of areas) {
-        if (mosquito.x >= a.x && mosquito.x <= a.x + a.w && mosquito.y >= a.y && mosquito.y <= a.y + a.h) return a;
+        if (mosquito.x >= a.x && mosquito.x <= a.x + a.w &&
+            mosquito.y >= a.y && mosquito.y <= a.y + a.h) {
+            return a;
+        }
     }
     return null;
 }
@@ -347,31 +689,82 @@ let currentTouchId = null;
 
 function onJoyStart(clientX, clientY, touchId = null) {
     if (mosquito.isDead || isPausedForDialog) return;
-    joyActive = true; currentTouchId = touchId; joyOrigin = { x: clientX, y: clientY };
-    arenaJoy.style.left = clientX + "px"; arenaJoy.style.top = clientY + "px"; arenaJoy.style.display = "block";
-    arenaKnob.style.transform = "translate(0px, 0px)"; joyVector = { x: 0, y: 0 };
+    joyActive = true;
+    currentTouchId = touchId;
+    joyOrigin = { x: clientX, y: clientY };
+    arenaJoy.style.left = clientX + "px";
+    arenaJoy.style.top = clientY + "px";
+    arenaJoy.style.display = "block";
+    arenaKnob.style.transform = "translate(0px, 0px)";
+    joyVector = { x: 0, y: 0 };
 }
+
 function onJoyMove(clientX, clientY) {
     if (!joyActive || mosquito.isDead || isPausedForDialog) return;
-    let dx = clientX - joyOrigin.x, dy = clientY - joyOrigin.y;
-    const dist = Math.hypot(dx, dy), maxRadius = 55;
-    if (dist > maxRadius) { dx = (dx / dist) * maxRadius; dy = (dy / dist) * maxRadius; }
+    let dx = clientX - joyOrigin.x;
+    let dy = clientY - joyOrigin.y;
+    const dist = Math.hypot(dx, dy);
+    const maxRadius = 55;
+    if (dist > maxRadius) {
+        dx = (dx / dist) * maxRadius;
+        dy = (dy / dist) * maxRadius;
+    }
     arenaKnob.style.transform = `translate(${dx}px, ${dy}px)`;
     joyVector = { x: dx / maxRadius, y: dy / maxRadius };
 }
-function onJoyEnd() { joyActive = false; currentTouchId = null; arenaJoy.style.display = "none"; arenaKnob.style.transform = "translate(0px, 0px)"; joyVector = { x: 0, y: 0 }; }
 
-leftZone.addEventListener("touchstart", (e) => { e.preventDefault(); if (joyActive || mosquito.isDead || isPausedForDialog) return; const t = e.changedTouches[0]; onJoyStart(t.clientX, t.clientY, t.identifier); }, { passive: false });
-window.addEventListener("touchmove", (e) => { if (!joyActive || mosquito.isDead || isPausedForDialog) return; for (let t of e.touches) { if (t.identifier === currentTouchId) { onJoyMove(t.clientX, t.clientY); break; } } });
-window.addEventListener("touchend", (e) => { if (!joyActive) return; for (let t of e.changedTouches) { if (t.identifier === currentTouchId) { onJoyEnd(); break; } } });
+function onJoyEnd() {
+    joyActive = false;
+    currentTouchId = null;
+    arenaJoy.style.display = "none";
+    arenaKnob.style.transform = "translate(0px, 0px)";
+    joyVector = { x: 0, y: 0 };
+}
+
+leftZone.addEventListener("touchstart", (e) => {
+    e.preventDefault();
+    if (joyActive || mosquito.isDead || isPausedForDialog) return;
+    const t = e.changedTouches[0];
+    onJoyStart(t.clientX, t.clientY, t.identifier);
+}, { passive: false });
+
+window.addEventListener("touchmove", (e) => {
+    if (!joyActive || mosquito.isDead || isPausedForDialog) return;
+    for (let t of e.touches) {
+        if (t.identifier === currentTouchId) {
+            onJoyMove(t.clientX, t.clientY);
+            break;
+        }
+    }
+});
+
+window.addEventListener("touchend", (e) => {
+    if (!joyActive) return;
+    for (let t of e.changedTouches) {
+        if (t.identifier === currentTouchId) {
+            onJoyEnd();
+            break;
+        }
+    }
+});
+
 leftZone.addEventListener("mousedown", (e) => onJoyStart(e.clientX, e.clientY));
 window.addEventListener("mousemove", (e) => { if (joyActive && currentTouchId === null) onJoyMove(e.clientX, e.clientY); });
 window.addEventListener("mouseup", (e) => { if (joyActive && currentTouchId === null) onJoyEnd(); });
 
 const suckBtn = document.getElementById("suck-btn");
 const blinkBtn = document.getElementById("blink-btn");
-function startSuck() { if (mosquito.isDead || isPausedForDialog) return; isSucking = true; suckBtn.classList.add("pressed"); }
-function stopSuck() { isSucking = false; suckBtn.classList.remove("pressed"); }
+
+function startSuck() {
+    if (mosquito.isDead || isPausedForDialog) return;
+    isSucking = true;
+    suckBtn.classList.add("pressed");
+}
+function stopSuck() {
+    isSucking = false;
+    suckBtn.classList.remove("pressed");
+}
+
 suckBtn.addEventListener("mousedown", startSuck);
 window.addEventListener("mouseup", stopSuck);
 suckBtn.addEventListener("touchstart", (e) => { e.preventDefault(); startSuck(); }, { passive: false });
@@ -379,61 +772,163 @@ window.addEventListener("touchend", stopSuck);
 
 function showDodgeEffect() {
     const popup = document.getElementById("dodge-popup");
-    popup.style.display = "block"; popup.style.transform = "translate(-50%, -50%) scale(1.2)"; popup.style.opacity = "1";
-    setTimeout(() => { popup.style.transform = "translate(-50%, -70%) scale(0.9)"; popup.style.opacity = "0"; setTimeout(() => { popup.style.display = "none"; }, 300); }, 500);
+    popup.style.display = "block";
+    popup.style.transform = "translate(-50%, -50%) scale(1.2)";
+    popup.style.opacity = "1";
+    setTimeout(() => {
+        popup.style.transform = "translate(-50%, -70%) scale(0.9)";
+        popup.style.opacity = "0";
+        setTimeout(() => { popup.style.display = "none"; }, 300);
+    }, 500);
 }
 
 function triggerBlink(e) {
     if (e && e.preventDefault) e.preventDefault();
     if (!hasLearnedBlink) return;
     if (blinkCooldown <= 0 && !mosquito.isDead && !isPausedForDialog) {
-        blinkCooldown = 2.0; stopSuck();
-        let dirX = joyVector.x, dirY = joyVector.y;
+        blinkCooldown = 2.0;
+        stopSuck();
+
+        let dirX = joyVector.x;
+        let dirY = joyVector.y;
         const mag = Math.hypot(dirX, dirY);
-        if (mag > 0.1) { dirX /= mag; dirY /= mag; } else { dirX = mosquito.facingRight ? 1 : -1; dirY = 0; }
+
+        if (mag > 0.1) {
+            dirX /= mag;
+            dirY /= mag;
+        } else {
+            dirX = mosquito.facingRight ? 1 : -1;
+            dirY = 0;
+        }
+
         const blinkDist = 180;
         blinkShadows.push({ x: mosquito.x, y: mosquito.y, alpha: 0.8, facingRight: mosquito.facingRight });
         blinkShadows.push({ x: mosquito.x + dirX * 60, y: mosquito.y + dirY * 60, alpha: 0.5, facingRight: mosquito.facingRight });
-        mosquito.x += dirX * blinkDist; mosquito.y += dirY * blinkDist; mosquito.invincibleTimer = 0.5;
-        mosquito.x = Math.max(25, Math.min(worldWidth - 25, mosquito.x)); mosquito.y = Math.max(25, Math.min(worldHeight - 25, mosquito.y));
-        for (let i = 0; i < 16; i++) bloodParticles.push({ x: mosquito.x + (Math.random() - 0.5) * 30, y: mosquito.y + (Math.random() - 0.5) * 30, vx: (Math.random() - 0.5) * 160, vy: (Math.random() - 0.5) * 160, radius: Math.random() * 3 + 2, alpha: 1.0, color: "#00e5ff" });
-        if (windWaveActive && Math.abs(mosquito.x - windWaveX) < 160) { showDodgeEffect(); alertVal = Math.max(0, alertVal - 15); }
-        if (qteActive) { qteActive = false; alertVal = 40; showDodgeEffect(); document.getElementById("qte-overlay").style.display = "none"; }
+
+        mosquito.x += dirX * blinkDist;
+        mosquito.y += dirY * blinkDist;
+        mosquito.invincibleTimer = 0.5;
+
+        mosquito.x = Math.max(25, Math.min(worldWidth - 25, mosquito.x));
+        mosquito.y = Math.max(25, Math.min(worldHeight - 25, mosquito.y));
+
+        for (let i = 0; i < 16; i++) {
+            bloodParticles.push({
+                x: mosquito.x + (Math.random() - 0.5) * 30,
+                y: mosquito.y + (Math.random() - 0.5) * 30,
+                vx: (Math.random() - 0.5) * 160,
+                vy: (Math.random() - 0.5) * 160,
+                radius: Math.random() * 3 + 2,
+                alpha: 1.0,
+                color: "#00e5ff"
+            });
+        }
+
+        if (windWaveActive && Math.abs(mosquito.x - windWaveX) < 160) {
+            showDodgeEffect();
+            alertVal = Math.max(0, alertVal - 15);
+        }
+
+        if (qteActive) {
+            qteActive = false;
+            alertVal = 40;
+            showDodgeEffect();
+            document.getElementById("qte-overlay").style.display = "none";
+        }
     }
 }
+
 blinkBtn.addEventListener("click", triggerBlink);
 blinkBtn.addEventListener("touchstart", triggerBlink, { passive: false });
 
 function triggerDeath(reason) {
     if (mosquito.isDead) return;
-    mosquito.isDead = true; mosquito.deathType = reason; stopSuck(); document.getElementById("qte-overlay").style.display = "none";
+    mosquito.isDead = true;
+    mosquito.deathType = reason;
+    stopSuck();
+    document.getElementById("qte-overlay").style.display = "none";
+
     const reasonText = document.getElementById("death-reason");
-    if (reason === "STARVED") reasonText.innerText = "長時間未吸血，體力耗盡飢餓墜地身亡...";
-    else if (reason === "SLAPPED") reasonText.innerText = "壽星四人合體神掌合攏！你被拍扁貼在皮膚上，精華液全濺光了...";
-    else if (reason === "ZAPPED") reasonText.innerText = "啪滋！被高壓電蚊拍正面擊中，當場碳化化為灰燼！";
-    else if (reason === "SPRAY") reasonText.innerText = "吸入過量殺蟲劑毒氣，神經麻痺窒息死亡...";
-    else if (reason === "COIL") reasonText.innerText = "被旋轉燃燒的蚊香燙傷烤焦，忍道終結...";
-    else if (reason === "WIND_STRIKE") reasonText.innerText = "強烈掌風正面命中！脆弱的翅膀與身軀當場碎裂墜地...";
-    else reasonText.innerText = "嘔！吸到太多胖子油膩毒血，蚊子當場暴斃身亡...";
-    setTimeout(() => { document.getElementById("game-over-screen").style.display = "flex"; }, 1800);
+    if (reason === "STARVED") {
+        reasonText.innerText = "長時間未吸血，體力耗盡飢餓墜地身亡...";
+    } else if (reason === "SLAPPED") {
+        reasonText.innerText = "壽星四人合體神掌合攏！你被拍扁貼在皮膚上，精華液全濺光了...";
+        for (let i = 0; i < 45; i++) {
+            bloodParticles.push({
+                x: mosquito.x, y: mosquito.y,
+                vx: (Math.random() - 0.5) * 180, vy: (Math.random() - 0.5) * 180,
+                radius: Math.random() * 4 + 2, alpha: 1.0, isRed: true
+            });
+        }
+    } else if (reason === "ZAPPED") {
+        reasonText.innerText = "啪滋！被高壓電蚊拍正面擊中，當場碳化化為灰燼！";
+    } else if (reason === "SPRAY") {
+        reasonText.innerText = "吸入過量殺蟲劑毒氣，神經麻痺窒息死亡...";
+    } else if (reason === "COIL") {
+        reasonText.innerText = "被旋轉燃燒的蚊香燙傷烤焦，忍道終結...";
+    } else if (reason === "WIND_STRIKE") {
+        reasonText.innerText = "強烈掌風正面命中！脆弱的翅膀與身軀當場碎裂墜地...";
+    } else {
+        reasonText.innerText = "嘔！吸到太多胖子油膩毒血，蚊子當場暴斃身亡...";
+    }
+
+    setTimeout(() => {
+        document.getElementById("game-over-screen").style.display = "flex";
+    }, 1800);
 }
 
 function spawnHazard() {
     const types = ["SPRAY", "SWAT", "COIL"];
     const type = types[Math.floor(Math.random() * types.length)];
+
     if (type === "SPRAY") {
         const fromLeft = Math.random() < 0.5;
-        hazards.push({ type: "SPRAY", x: fromLeft ? 0 : worldWidth, y: mosquito.y + (Math.random() - 0.5) * 200, vx: fromLeft ? 110 : -110, radius: 52, life: 6.0 });
+        hazards.push({
+            type: "SPRAY",
+            x: fromLeft ? 0 : worldWidth,
+            y: mosquito.y + (Math.random() - 0.5) * 200,
+            vx: fromLeft ? 110 : -110,
+            radius: 52,
+            life: 6.0
+        });
     } else if (type === "SWAT") {
-        hazards.push({ type: "SWAT", x: mosquito.x + (Math.random() - 0.5) * 100, y: mosquito.y + (Math.random() - 0.5) * 100, warnTimer: 0.8, strikeTimer: 0.35, width: 80, height: 80, struck: false });
+        hazards.push({
+            type: "SWAT",
+            x: mosquito.x + (Math.random() - 0.5) * 100,
+            y: mosquito.y + (Math.random() - 0.5) * 100,
+            warnTimer: 0.8,
+            strikeTimer: 0.35,
+            width: 80,
+            height: 80,
+            struck: false
+        });
     } else if (type === "COIL") {
-        hazards.push({ type: "COIL", x: Math.random() * worldWidth, y: 0, vx: (Math.random() - 0.5) * 140, vy: 120, radius: 26, angle: 0, life: 8.0 });
+        hazards.push({
+            type: "COIL",
+            x: Math.random() * worldWidth,
+            y: 0,
+            vx: (Math.random() - 0.5) * 140,
+            vy: 120,
+            radius: 26,
+            angle: 0,
+            life: 8.0
+        });
     }
 }
 
 function spawnBloodPack() {
-    const speed = 70, angle = Math.random() * Math.PI * 2;
-    bloodPacks.push({ x: Math.random() * (worldWidth - 140) + 70, y: Math.random() * (worldHeight - 200) + 100, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, w: 26, h: 26, life: 16.0, floatPhase: Math.random() * 10 });
+    const speed = 70;
+    const angle = Math.random() * Math.PI * 2;
+    bloodPacks.push({
+        x: Math.random() * (worldWidth - 140) + 70,
+        y: Math.random() * (worldHeight - 200) + 100,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        w: 26,
+        h: 26,
+        life: 16.0,
+        floatPhase: Math.random() * 10
+    });
 }
 
 let lastTime = performance.now();
@@ -442,101 +937,282 @@ let suckTick = 0;
 function gameLoop(now) {
     const dt = (now - lastTime) / 1000;
     lastTime = now;
-    if (isPausedForDialog) { render(null, now); requestAnimationFrame(gameLoop); return; }
+
+    if (isPausedForDialog) {
+        render(null, now);
+        requestAnimationFrame(gameLoop);
+        return;
+    }
+
     if (hurtFlashTimer > 0) hurtFlashTimer -= dt;
     if (mosquito.invincibleTimer > 0) mosquito.invincibleTimer -= dt;
-    if (mosquito.isDead) { deathAnimTimer += dt; soulY -= 35 * dt; updateParticles(dt); render(null, now); requestAnimationFrame(gameLoop); return; }
-    if (blinkCooldown > 0) { blinkCooldown -= dt; if (blinkCooldown <= 0) blinkCooldown = 0; updateBlinkBtnUI(); }
-    if (joyVector.x !== 0 || joyVector.y !== 0) { mosquito.x += joyVector.x * mosquito.speed * dt; mosquito.y += joyVector.y * mosquito.speed * dt; if (joyVector.x > 0.05) mosquito.facingRight = true; else if (joyVector.x < -0.05) mosquito.facingRight = false; stopSuck(); }
-    mosquito.x = Math.max(20, Math.min(worldWidth - 20, mosquito.x)); mosquito.y = Math.max(20, Math.min(worldHeight - 20, mosquito.y));
-    const targetCamX = mosquito.x - (canvas.width / 2) / camera.zoom, targetCamY = mosquito.y - (canvas.height / 2) / camera.zoom;
-    camera.x += (targetCamX - camera.x) * 0.14; camera.y += (targetCamY - camera.y) * 0.14;
-    mosquito.frameTimer += dt; if (mosquito.frameTimer > 0.09) { mosquito.frame = mosquito.frame === 0 ? 1 : 0; mosquito.frameTimer = 0; }
-    hazardSpawnTimer += dt; if (hazardSpawnTimer > 2.5) { spawnHazard(); hazardSpawnTimer = 0; }
-    bloodPackSpawnTimer += dt; if (bloodPackSpawnTimer > 6.0) { if (bloodPacks.length < 3) spawnBloodPack(); bloodPackSpawnTimer = 0; }
+
+    if (mosquito.isDead) {
+        deathAnimTimer += dt;
+        soulY -= 35 * dt;
+        updateParticles(dt);
+        render(null, now);
+        requestAnimationFrame(gameLoop);
+        return;
+    }
+
+    if (blinkCooldown > 0) {
+        blinkCooldown -= dt;
+        if (blinkCooldown <= 0) blinkCooldown = 0;
+        updateBlinkBtnUI();
+    }
+
+    if (joyVector.x !== 0 || joyVector.y !== 0) {
+        mosquito.x += joyVector.x * mosquito.speed * dt;
+        mosquito.y += joyVector.y * mosquito.speed * dt;
+        if (joyVector.x > 0.05) mosquito.facingRight = true;
+        else if (joyVector.x < -0.05) mosquito.facingRight = false;
+        stopSuck();
+    }
+
+    mosquito.x = Math.max(20, Math.min(worldWidth - 20, mosquito.x));
+    mosquito.y = Math.max(20, Math.min(worldHeight - 20, mosquito.y));
+
+    const targetCamX = mosquito.x - (canvas.width / 2) / camera.zoom;
+    const targetCamY = mosquito.y - (canvas.height / 2) / camera.zoom;
+    camera.x += (targetCamX - camera.x) * 0.14;
+    camera.y += (targetCamY - camera.y) * 0.14;
+
+    mosquito.frameTimer += dt;
+    if (mosquito.frameTimer > 0.09) {
+        mosquito.frame = mosquito.frame === 0 ? 1 : 0;
+        mosquito.frameTimer = 0;
+    }
+
+    hazardSpawnTimer += dt;
+    if (hazardSpawnTimer > 2.5) {
+        spawnHazard();
+        hazardSpawnTimer = 0;
+    }
+
+    bloodPackSpawnTimer += dt;
+    if (bloodPackSpawnTimer > 6.0) {
+        if (bloodPacks.length < 3) spawnBloodPack();
+        bloodPackSpawnTimer = 0;
+    }
 
     for (let i = bloodPacks.length - 1; i >= 0; i--) {
-        let bp = bloodPacks[i]; bp.life -= dt; bp.floatPhase += dt * 4; bp.x += bp.vx * dt; bp.y += (bp.vy + Math.sin(bp.floatPhase) * 20) * dt;
-        if (bp.x < 30) { bp.x = 30; bp.vx = Math.abs(bp.vx); } if (bp.x > worldWidth - 30) { bp.x = worldWidth - 30; bp.vx = -Math.abs(bp.vx); }
-        if (bp.y < 30) { bp.y = 30; bp.vy = Math.abs(bp.vy); } if (bp.y > worldHeight - 30) { bp.y = worldHeight - 30; bp.vy = -Math.abs(bp.vy); }
-        if (Math.hypot(mosquito.x - bp.x, mosquito.y - bp.y) < 28) { health = Math.min(100, health + 35); for (let k = 0; k < 12; k++) bloodParticles.push({ x: bp.x, y: bp.y, vx: (Math.random() - 0.5) * 80, vy: (Math.random() - 0.5) * 80, radius: 2.5, alpha: 1.0, color: "#76ff03" }); bloodPacks.splice(i, 1); continue; }
+        let bp = bloodPacks[i];
+        bp.life -= dt;
+        bp.floatPhase += dt * 4;
+
+        bp.x += bp.vx * dt;
+        bp.y += (bp.vy + Math.sin(bp.floatPhase) * 20) * dt;
+
+        if (bp.x < 30) { bp.x = 30; bp.vx = Math.abs(bp.vx); }
+        if (bp.x > worldWidth - 30) { bp.x = worldWidth - 30; bp.vx = -Math.abs(bp.vx); }
+        if (bp.y < 30) { bp.y = 30; bp.vy = Math.abs(bp.vy); }
+        if (bp.y > worldHeight - 30) { bp.y = worldHeight - 30; bp.vy = -Math.abs(bp.vy); }
+
+        if (Math.hypot(mosquito.x - bp.x, mosquito.y - bp.y) < 28) {
+            health = Math.min(100, health + 35);
+            for (let k = 0; k < 12; k++) {
+                bloodParticles.push({
+                    x: bp.x,
+                    y: bp.y,
+                    vx: (Math.random() - 0.5) * 80,
+                    vy: (Math.random() - 0.5) * 80,
+                    radius: 2.5,
+                    alpha: 1.0,
+                    color: "#76ff03"
+                });
+            }
+            bloodPacks.splice(i, 1);
+            continue;
+        }
         if (bp.life <= 0) bloodPacks.splice(i, 1);
     }
 
     for (let i = hazards.length - 1; i >= 0; i--) {
         let h = hazards[i];
         if (h.type === "SPRAY") {
-            h.x += h.vx * dt; h.life -= dt;
-            if (mosquito.invincibleTimer <= 0 && Math.hypot(mosquito.x - h.x, mosquito.y - h.y) < h.radius) { health = Math.max(0, health - 28 * dt); hurtFlashTimer = 0.1; if (health <= 0) triggerDeath("SPRAY"); }
+            h.x += h.vx * dt;
+            h.life -= dt;
+            if (mosquito.invincibleTimer <= 0 && Math.hypot(mosquito.x - h.x, mosquito.y - h.y) < h.radius) {
+                health = Math.max(0, health - 28 * dt);
+                hurtFlashTimer = 0.1;
+                if (health <= 0) triggerDeath("SPRAY");
+            }
             if (h.life <= 0) hazards.splice(i, 1);
         } else if (h.type === "SWAT") {
-            if (h.warnTimer > 0) h.warnTimer -= dt;
-            else if (h.strikeTimer > 0) { h.strikeTimer -= dt; if (!h.struck && mosquito.invincibleTimer <= 0 && Math.abs(mosquito.x - h.x) < h.width / 2 && Math.abs(mosquito.y - h.y) < h.height / 2) { h.struck = true; health = Math.max(0, health - 50); hurtFlashTimer = 0.3; if (health <= 0) triggerDeath("ZAPPED"); } }
-            else hazards.splice(i, 1);
+            if (h.warnTimer > 0) {
+                h.warnTimer -= dt;
+            } else if (h.strikeTimer > 0) {
+                h.strikeTimer -= dt;
+                if (!h.struck && mosquito.invincibleTimer <= 0 && Math.abs(mosquito.x - h.x) < h.width / 2 && Math.abs(mosquito.y - h.y) < h.height / 2) {
+                    h.struck = true;
+                    health = Math.max(0, health - 50);
+                    hurtFlashTimer = 0.3;
+                    if (health <= 0) triggerDeath("ZAPPED");
+                }
+            } else {
+                hazards.splice(i, 1);
+            }
         } else if (h.type === "COIL") {
-            h.x += h.vx * dt; h.y += h.vy * dt; h.angle += 3 * dt; h.life -= dt;
-            if (h.x < 30 || h.x > worldWidth - 30) h.vx *= -1; if (h.y < 30 || h.y > worldHeight - 30) h.vy *= -1;
-            if (mosquito.invincibleTimer <= 0 && Math.hypot(mosquito.x - h.x, mosquito.y - h.y) < h.radius) { health = Math.max(0, health - 35 * dt); hurtFlashTimer = 0.1; if (health <= 0) triggerDeath("COIL"); }
+            h.x += h.vx * dt;
+            h.y += h.vy * dt;
+            h.angle += 3 * dt;
+            h.life -= dt;
+            if (h.x < 30 || h.x > worldWidth - 30) h.vx *= -1;
+            if (h.y < 30 || h.y > worldHeight - 30) h.vy *= -1;
+            if (mosquito.invincibleTimer <= 0 && Math.hypot(mosquito.x - h.x, mosquito.y - h.y) < h.radius) {
+                health = Math.max(0, health - 35 * dt);
+                hurtFlashTimer = 0.1;
+                if (health <= 0) triggerDeath("COIL");
+            }
             if (h.life <= 0) hazards.splice(i, 1);
         }
     }
 
-    if (!isSucking) { health = Math.max(0, health - 3.2 * dt); if (health <= 0) triggerDeath("STARVED"); }
-    if (!isSucking && !qteActive) alertVal = Math.max(0, alertVal - 10 * dt);
+    if (!isSucking) {
+        health = Math.max(0, health - 3.2 * dt);
+        if (health <= 0) triggerDeath("STARVED");
+    }
+
+    if (!isSucking && !qteActive) {
+        alertVal = Math.max(0, alertVal - 10 * dt);
+    }
 
     if (alertVal >= 40) {
         windWaveTimer += dt;
-        if (windWaveTimer >= 2.0 && !windWaveActive) { windWaveWarning = true; windWaveWarningTimer = 3.2 - windWaveTimer; }
-        if (windWaveTimer >= 3.2) { windWaveActive = true; windWaveWarning = false; windWaveX = mosquito.x - 340; windWaveTimer = 0; }
-    } else { windWaveTimer = 0; windWaveActive = false; windWaveWarning = false; }
+        if (windWaveTimer >= 2.0 && !windWaveActive) {
+            windWaveWarning = true;
+            windWaveWarningTimer = 3.2 - windWaveTimer;
+        }
+        if (windWaveTimer >= 3.2) {
+            windWaveActive = true;
+            windWaveWarning = false;
+            windWaveX = mosquito.x - 340;
+            windWaveTimer = 0;
+        }
+    } else {
+        windWaveTimer = 0;
+        windWaveActive = false;
+        windWaveWarning = false;
+    }
 
     if (windWaveActive) {
         windWaveX += 720 * dt;
         if (Math.abs(mosquito.x - windWaveX) < 45) {
-            if (mosquito.invincibleTimer > 0) { showDodgeEffect(); windWaveActive = false; }
-            else { stopSuck(); mosquito.x += (mosquito.x - windWaveX > 0 ? 90 : -90); windWaveActive = false; health = Math.max(0, health - 20); hurtFlashTimer = 0.25; if (health <= 0) triggerDeath("WIND_STRIKE"); }
+            if (mosquito.invincibleTimer > 0) {
+                showDodgeEffect();
+                windWaveActive = false;
+            } else {
+                stopSuck();
+                mosquito.x += (mosquito.x - windWaveX > 0 ? 90 : -90);
+                windWaveActive = false;
+                health = Math.max(0, health - 20);
+                hurtFlashTimer = 0.25;
+                if (health <= 0) triggerDeath("WIND_STRIKE");
+            }
         }
         if (windWaveX > mosquito.x + 350) windWaveActive = false;
     }
 
     let muscleTight = alertVal >= 70;
     if (muscleTight) screenShakeTimer += dt * 15;
-    if (alertVal >= 100 && !qteActive) { qteActive = true; qteTimer = 0.85; slapHandsDist = 1.0; document.getElementById("qte-overlay").style.display = "block"; }
-    if (qteActive) { qteTimer -= dt; slapHandsDist = Math.max(0, qteTimer / 0.85); if (qteTimer <= 0) triggerDeath("SLAPPED"); }
+
+    if (alertVal >= 100 && !qteActive) {
+        qteActive = true;
+        qteTimer = 0.85;
+        slapHandsDist = 1.0;
+        document.getElementById("qte-overlay").style.display = "block";
+    }
+
+    if (qteActive) {
+        qteTimer -= dt;
+        slapHandsDist = Math.max(0, qteTimer / 0.85);
+        if (qteTimer <= 0) triggerDeath("SLAPPED");
+    }
 
     const currentTarget = getCurrentTarget();
     const statusText = document.getElementById("status-text");
 
     if (isSucking) {
         suckTick += dt * 18;
-        if (!currentTarget) { statusText.innerText = "❌ 咬到衣服或背景！無法吸血"; statusText.style.color = "#bbb"; }
-        else if (currentTarget.category === "BIRTHDAY_BOY") {
+
+        if (!currentTarget) {
+            statusText.innerText = "❌ 咬到衣服或背景！無法吸血";
+            statusText.style.color = "#bbb";
+        } else if (currentTarget.category === "BIRTHDAY_BOY") {
             let rateMod = muscleTight ? 0.5 : 1.0;
             let gain = (currentTarget.name.includes("臉") ? 22 : (currentTarget.name.includes("手") ? 15 : 10)) * rateMod;
             let alertSpd = currentTarget.name.includes("臉") ? 45 : (currentTarget.name.includes("手") ? 32 : 20);
-            let prevEssence = essence, prevAlert = alertVal;
-            essence = Math.min(100, essence + gain * dt); alertVal = Math.min(100, alertVal + alertSpd * dt); health = Math.min(100, health + 14 * dt);
-            if (prevAlert < 10 && alertVal >= 10 && !hasPromptedAlert10) { hasPromptedAlert10 = true; stopSuck(); showAlert10Dialog(); }
-            if (prevEssence < 10 && essence >= 10 && !hasLearnedBlink) { hasLearnedBlink = true; updateBlinkBtnUI(); stopSuck(); showUnlockBlinkDialog(); }
-            if (essence >= 100 && !isStageComplete) { stopSuck(); showWinDialog(); }
-            statusText.innerText = `🩸 汲取【${currentTarget.name}】精華液中！`; statusText.style.color = "#ff1744";
+            let prevEssence = essence;
+            let prevAlert = alertVal;
+
+            essence = Math.min(100, essence + gain * dt);
+            alertVal = Math.min(100, alertVal + alertSpd * dt);
+            health = Math.min(100, health + 14 * dt);
+
+            if (prevAlert < 10 && alertVal >= 10 && !hasPromptedAlert10) {
+                hasPromptedAlert10 = true;
+                stopSuck();
+                showAlert10Dialog();
+            }
+
+            if (prevEssence < 10 && essence >= 10 && !hasLearnedBlink) {
+                hasLearnedBlink = true;
+                updateBlinkBtnUI();
+                stopSuck();
+                showUnlockBlinkDialog();
+            }
+
+            if (essence >= 100 && !isStageComplete) {
+                stopSuck();
+                showWinDialog();
+            }
+
+            statusText.innerText = `🩸 汲取【${currentTarget.name}】精華液中！`;
+            statusText.style.color = "#ff1744";
+
             if (Math.random() < 0.6) _spawnBlood(mosquito.facingRight ? 11 : -11, 16, true);
         } else if (currentTarget.category === "FAT_MAN") {
-            health = Math.max(0, health - 40 * dt); alertVal = 100; statusText.innerText = "🌀 嘔！吸到胖子油膩毒血！暴露值爆表！"; statusText.style.color = "#00e676"; if (health <= 0) triggerDeath("POISONED");
+            health = Math.max(0, health - 40 * dt);
+            alertVal = 100;
+            statusText.innerText = "🌀 嘔！吸到胖子油膩毒血！暴露值爆表！";
+            statusText.style.color = "#00e676";
+            if (health <= 0) triggerDeath("POISONED");
         } else if (currentTarget.category === "OTHER_FRIEND") {
-            let prevAlert = alertVal; alertVal = Math.min(100, alertVal + 26 * dt); health = Math.min(100, health + 10 * dt);
-            if (prevAlert < 10 && alertVal >= 10 && !hasPromptedAlert10) { hasPromptedAlert10 = true; stopSuck(); showAlert10Dialog(); }
-            statusText.innerText = `🩸 正在叮咬【${currentTarget.name}】(回血有效，精華無效)`; statusText.style.color = "#ff9100";
+            let prevAlert = alertVal;
+            alertVal = Math.min(100, alertVal + 26 * dt);
+            health = Math.min(100, health + 10 * dt);
+
+            if (prevAlert < 10 && alertVal >= 10 && !hasPromptedAlert10) {
+                hasPromptedAlert10 = true;
+                stopSuck();
+                showAlert10Dialog();
+            }
+
+            statusText.innerText = `🩸 正在叮咬【${currentTarget.name}】(回血有效，精華無效)`;
+            statusText.style.color = "#ff9100";
             if (Math.random() < 0.6) _spawnBlood(mosquito.facingRight ? 11 : -11, 16, true);
         }
     } else {
         if (!qteActive && hurtFlashTimer <= 0) {
-            if (windWaveWarning) { statusText.innerText = hasLearnedBlink ? "⚠️ 掌風襲來預警！準備按【瞬移⚡】閃避！" : "⚠️ 掌風襲來預警！小心被重創！"; statusText.style.color = "#ff1744"; }
-            else if (currentTarget) {
-                if (currentTarget.category === "BIRTHDAY_BOY") { statusText.innerText = `🟢 鎖定壽星部位：${currentTarget.name} (按住吸血)`; statusText.style.color = "#76ff03"; }
-                else if (currentTarget.category === "FAT_MAN") { statusText.innerText = `⚠️️ 這是路人胖子！有毒別吸！`; statusText.style.color = "#ff5252"; }
-                else { statusText.innerText = `⚪ 發現目標：${currentTarget.name} (可吸血回血)`; statusText.style.color = "#fff"; }
-            } else { statusText.innerText = "注意飢餓扣血！快找皮膚吸血或吃血袋！"; statusText.style.color = "#ffeb3b"; }
+            if (windWaveWarning) {
+                statusText.innerText = hasLearnedBlink ? "⚠️ 掌風襲來預警！準備按【瞬移⚡】閃避！" : "⚠️ 掌風襲來預警！小心被重創！";
+                statusText.style.color = "#ff1744";
+            } else if (currentTarget) {
+                if (currentTarget.category === "BIRTHDAY_BOY") {
+                    statusText.innerText = `🟢 鎖定壽星部位：${currentTarget.name} (按住吸血)`;
+                    statusText.style.color = "#76ff03";
+                } else if (currentTarget.category === "FAT_MAN") {
+                    statusText.innerText = "⚠️ 這是胖子！有毒別吸！";
+                    statusText.style.color = "#ff5252";
+                } else {
+                    statusText.innerText = `⚪ 發現目標：${currentTarget.name} (可吸血回血)`;
+                    statusText.style.color = "#fff";
+                }
+            } else {
+                statusText.innerText = "注意飢餓扣血！快找皮膚吸血或吃血袋！";
+                statusText.style.color = "#ffeb3b";
+            }
         }
     }
 
@@ -549,96 +1225,263 @@ function gameLoop(now) {
 }
 
 function updateParticles(dt) {
-    for (let i = bloodParticles.length - 1; i >= 0; i--) { let p = bloodParticles[i]; p.x += p.vx * dt; p.y += p.vy * dt; p.alpha -= 2.2 * dt; if (!p.color) p.vy += 100 * dt; if (p.alpha <= 0) bloodParticles.splice(i, 1); }
-    for (let i = blinkShadows.length - 1; i >= 0; i--) { blinkShadows[i].alpha -= 3.0 * dt; if (blinkShadows[i].alpha <= 0) blinkShadows.splice(i, 1); }
+    for (let i = bloodParticles.length - 1; i >= 0; i--) {
+        let p = bloodParticles[i];
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+        p.alpha -= 2.2 * dt;
+        if (!p.color) p.vy += 100 * dt;
+        if (p.alpha <= 0) bloodParticles.splice(i, 1);
+    }
+    for (let i = blinkShadows.length - 1; i >= 0; i--) {
+        blinkShadows[i].alpha -= 3.0 * dt;
+        if (blinkShadows[i].alpha <= 0) blinkShadows.splice(i, 1);
+    }
 }
-function _spawnBlood(offsetX, offsetY, isRed) { bloodParticles.push({ x: mosquito.x + offsetX, y: mosquito.y + offsetY, vx: (Math.random() - 0.5) * 45, vy: -Math.random() * 60 - 20, radius: Math.random() * 1.8 + 1.0, alpha: 1.0, isRed: isRed }); }
+
+function _spawnBlood(offsetX, offsetY, isRed) {
+    bloodParticles.push({
+        x: mosquito.x + offsetX,
+        y: mosquito.y + offsetY,
+        vx: (Math.random() - 0.5) * 45,
+        vy: -Math.random() * 60 - 20,
+        radius: Math.random() * 1.8 + 1.0,
+        alpha: 1.0,
+        isRed: isRed
+    });
+}
 
 function render(currentTarget, timestamp) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.save();
-    let shakeX = 0, shakeY = 0;
-    if (alertVal >= 70 && !mosquito.isDead) { shakeX = Math.sin(screenShakeTimer) * 1.8; shakeY = Math.cos(screenShakeTimer) * 1.8; }
-    ctx.scale(camera.zoom, camera.zoom); ctx.translate(-camera.x + shakeX, -camera.y + shakeY);
-    if (assets.bg.complete) ctx.drawImage(assets.bg, 0, 0, worldWidth, worldHeight);
 
-    if (showDebugBoxes) {
-        for (let a of getCharacterAreas()) {
-            ctx.save();
-            ctx.fillStyle = a.category === "BIRTHDAY_BOY" ? "rgba(76, 175, 80, 0.28)" : (a.category === "FAT_MAN" ? "rgba(244, 67, 54, 0.28)" : "rgba(33, 150, 243, 0.28)");
-            ctx.strokeStyle = a.category === "BIRTHDAY_BOY" ? "rgba(76, 175, 80, 0.9)" : (a.category === "FAT_MAN" ? "rgba(244, 67, 54, 0.9)" : "rgba(33, 150, 243, 0.9)");
-            ctx.lineWidth = 2; ctx.fillRect(a.x, a.y, a.w, a.h); ctx.strokeRect(a.x, a.y, a.w, a.h);
-            ctx.font = "14px sans-serif"; ctx.fillStyle = "#fff"; ctx.fillText(a.name, a.x + 4, a.y + 18); ctx.restore();
-        }
+    let shakeX = 0, shakeY = 0;
+    if (alertVal >= 70 && !mosquito.isDead) {
+        shakeX = Math.sin(screenShakeTimer) * 1.8;
+        shakeY = Math.cos(screenShakeTimer) * 1.8;
+    }
+
+    ctx.scale(camera.zoom, camera.zoom);
+    ctx.translate(-camera.x + shakeX, -camera.y + shakeY);
+
+    if (assets.bg.complete) {
+        ctx.drawImage(assets.bg, 0, 0, worldWidth, worldHeight);
     }
 
     for (let bp of bloodPacks) {
-        ctx.save(); ctx.translate(bp.x, bp.y);
+        ctx.save();
+        ctx.translate(bp.x, bp.y);
         const wingFlap = Math.sin(bp.floatPhase * 2.5) * 6;
-        ctx.fillStyle = "rgba(255, 255, 255, 0.6)"; ctx.beginPath(); ctx.ellipse(-14, wingFlap, 9, 4, -0.3, 0, Math.PI * 2); ctx.ellipse(14, wingFlap, 9, 4, 0.3, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = "#d50000"; ctx.strokeStyle = "#fff"; ctx.lineWidth = 2; ctx.beginPath(); ctx.roundRect(-bp.w / 2, -bp.h / 2, bp.w, bp.h, 6); ctx.fill(); ctx.stroke();
-        ctx.fillStyle = "#fff"; ctx.fillRect(-3, -8, 6, 16); ctx.fillRect(-8, -3, 16, 6);
-        ctx.font = "bold 10px sans-serif"; ctx.fillStyle = "#76ff03"; ctx.textAlign = "center"; ctx.fillText("+35 HP", 0, -18); ctx.restore();
+        ctx.fillStyle = "rgba(255, 255, 255, 0.6)";
+        ctx.beginPath();
+        ctx.ellipse(-14, wingFlap, 9, 4, -0.3, 0, Math.PI * 2);
+        ctx.ellipse(14, wingFlap, 9, 4, 0.3, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = "#d50000";
+        ctx.strokeStyle = "#fff";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.roundRect(-bp.w / 2, -bp.h / 2, bp.w, bp.h, 6);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = "#fff";
+        ctx.fillRect(-3, -8, 6, 16);
+        ctx.fillRect(-8, -3, 16, 6);
+
+        ctx.font = "bold 10px sans-serif";
+        ctx.fillStyle = "#76ff03";
+        ctx.textAlign = "center";
+        ctx.fillText("+35 HP", 0, -18);
+        ctx.restore();
     }
 
     for (let h of hazards) {
         ctx.save();
         if (h.type === "SPRAY") {
             let grad = ctx.createRadialGradient(h.x, h.y, 4, h.x, h.y, h.radius);
-            grad.addColorStop(0, "rgba(255, 255, 255, 0.92)"); grad.addColorStop(0.65, "rgba(230, 250, 255, 0.65)"); grad.addColorStop(1, "rgba(255, 255, 255, 0.15)");
-            ctx.fillStyle = grad; ctx.beginPath(); ctx.arc(h.x, h.y, h.radius, 0, Math.PI * 2); ctx.fill();
-            ctx.lineWidth = 2.5; ctx.strokeStyle = "rgba(255, 235, 59, 0.95)"; ctx.setLineDash([6, 5]); ctx.beginPath(); ctx.arc(h.x, h.y, h.radius, 0, Math.PI * 2); ctx.stroke();
-            ctx.setLineDash([]); ctx.font = "bold 13px sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.lineWidth = 3; ctx.strokeStyle = "rgba(0, 0, 0, 0.85)"; ctx.strokeText("☠️ 殺蟲劑", h.x, h.y - h.radius - 8); ctx.fillStyle = "#fff59d"; ctx.fillText("☠️ 殺蟲劑", h.x, h.y - h.radius - 8);
+            grad.addColorStop(0, "rgba(255, 255, 255, 0.92)");
+            grad.addColorStop(0.65, "rgba(230, 250, 255, 0.65)");
+            grad.addColorStop(1, "rgba(255, 255, 255, 0.15)");
+            ctx.fillStyle = grad;
+            ctx.beginPath();
+            ctx.arc(h.x, h.y, h.radius, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.lineWidth = 2.5;
+            ctx.strokeStyle = "rgba(255, 235, 59, 0.95)";
+            ctx.setLineDash([6, 5]);
+            ctx.beginPath();
+            ctx.arc(h.x, h.y, h.radius, 0, Math.PI * 2);
+            ctx.stroke();
+
+            ctx.setLineDash([]);
+            ctx.font = "bold 13px sans-serif";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = "rgba(0, 0, 0, 0.85)";
+            ctx.strokeText("☠️ 殺蟲劑", h.x, h.y - h.radius - 8);
+            ctx.fillStyle = "#fff59d";
+            ctx.fillText("☠️ 殺蟲劑", h.x, h.y - h.radius - 8);
         } else if (h.type === "SWAT") {
-            if (h.warnTimer > 0) { ctx.strokeStyle = "rgba(255, 23, 68, 0.85)"; ctx.lineWidth = 2; ctx.setLineDash([4, 4]); ctx.strokeRect(h.x - h.width / 2, h.y - h.height / 2, h.width, h.height); ctx.font = "12px sans-serif"; ctx.fillStyle = "#ff1744"; ctx.fillText("⚡ 電蚊拍瞄準中！", h.x - 45, h.y - h.height / 2 - 6); }
-            else { ctx.fillStyle = "rgba(0, 229, 255, 0.45)"; ctx.strokeStyle = "#00e5ff"; ctx.lineWidth = 3; ctx.fillRect(h.x - h.width / 2, h.y - h.height / 2, h.width, h.height); ctx.strokeRect(h.x - h.width / 2, h.y - h.height / 2, h.width, h.height); }
+            if (h.warnTimer > 0) {
+                ctx.strokeStyle = "rgba(255, 23, 68, 0.85)";
+                ctx.lineWidth = 2;
+                ctx.setLineDash([4, 4]);
+                ctx.strokeRect(h.x - h.width / 2, h.y - h.height / 2, h.width, h.height);
+                ctx.font = "12px sans-serif";
+                ctx.fillStyle = "#ff1744";
+                ctx.fillText("⚡ 電蚊拍瞄準中！", h.x - 45, h.y - h.height / 2 - 6);
+            } else {
+                ctx.fillStyle = "rgba(0, 229, 255, 0.45)";
+                ctx.strokeStyle = "#00e5ff";
+                ctx.lineWidth = 3;
+                ctx.fillRect(h.x - h.width / 2, h.y - h.height / 2, h.width, h.height);
+                ctx.strokeRect(h.x - h.width / 2, h.y - h.height / 2, h.width, h.height);
+            }
         } else if (h.type === "COIL") {
-            ctx.translate(h.x, h.y); ctx.rotate(h.angle); ctx.strokeStyle = "#4e342e"; ctx.lineWidth = 4; ctx.beginPath(); ctx.arc(0, 0, h.radius, 0, Math.PI * 1.8); ctx.stroke(); ctx.fillStyle = "#ff3d00"; ctx.beginPath(); ctx.arc(h.radius, 0, 3.5, 0, Math.PI * 2); ctx.fill();
+            ctx.translate(h.x, h.y);
+            ctx.rotate(h.angle);
+            ctx.strokeStyle = "#4e342e";
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.arc(0, 0, h.radius, 0, Math.PI * 1.8);
+            ctx.stroke();
+            ctx.fillStyle = "#ff3d00";
+            ctx.beginPath();
+            ctx.arc(h.radius, 0, 3.5, 0, Math.PI * 2);
+            ctx.fill();
         }
         ctx.restore();
     }
 
     if (windWaveWarning) {
-        ctx.save(); const curTime = timestamp || performance.now(); const pulseAlpha = 0.25 + Math.sin(curTime / 100) * 0.15;
-        ctx.fillStyle = `rgba(255, 23, 68, ${pulseAlpha})`; ctx.fillRect(mosquito.x - 120, 0, 90, worldHeight);
-        ctx.strokeStyle = "rgba(255, 23, 68, 0.9)"; ctx.lineWidth = 3; ctx.setLineDash([8, 6]); ctx.beginPath(); ctx.moveTo(mosquito.x - 120, 0); ctx.lineTo(mosquito.x - 120, worldHeight); ctx.moveTo(mosquito.x - 30, 0); ctx.lineTo(mosquito.x - 30, worldHeight); ctx.stroke();
-        ctx.setLineDash([]); ctx.font = "bold 14px sans-serif"; ctx.textAlign = "center"; ctx.lineWidth = 4; ctx.strokeStyle = "rgba(0, 0, 0, 0.9)";
-        const warnText = hasLearnedBlink ? `⚠️️ 掌風襲來 (${windWaveWarningTimer.toFixed(1)}s)！按【瞬移⚡】閃避！` : `⚠️ 掌風襲來 (${windWaveWarningTimer.toFixed(1)}s)！快閃開！`;
-        ctx.strokeText(warnText, mosquito.x, mosquito.y - 36); ctx.fillStyle = "#ff1744"; ctx.fillText(warnText, mosquito.x, mosquito.y - 36); ctx.restore();
+        ctx.save();
+        const curTime = timestamp || performance.now();
+        const pulseAlpha = 0.25 + Math.sin(curTime / 100) * 0.15;
+        ctx.fillStyle = `rgba(255, 23, 68, ${pulseAlpha})`;
+        ctx.fillRect(mosquito.x - 120, 0, 90, worldHeight);
+        ctx.strokeStyle = "rgba(255, 23, 68, 0.9)";
+        ctx.lineWidth = 3;
+        ctx.setLineDash([8, 6]);
+        ctx.beginPath();
+        ctx.moveTo(mosquito.x - 120, 0);
+        ctx.lineTo(mosquito.x - 120, worldHeight);
+        ctx.moveTo(mosquito.x - 30, 0);
+        ctx.lineTo(mosquito.x - 30, worldHeight);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.font = "bold 14px sans-serif";
+        ctx.textAlign = "center";
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = "rgba(0, 0, 0, 0.9)";
+        const warnText = hasLearnedBlink ? `⚠️ 掌風襲來 (${windWaveWarningTimer.toFixed(1)}s)！按【瞬移⚡】閃避！` : `⚠️ 掌風襲來 (${windWaveWarningTimer.toFixed(1)}s)！快閃開！`;
+        ctx.strokeText(warnText, mosquito.x, mosquito.y - 36);
+        ctx.fillStyle = "#ff1744";
+        ctx.fillText(warnText, mosquito.x, mosquito.y - 36);
+        ctx.restore();
     }
 
-    if (windWaveActive) { ctx.save(); ctx.fillStyle = "rgba(255, 255, 255, 0.25)"; ctx.fillRect(windWaveX - 25, 0, 50, worldHeight); ctx.fillStyle = "rgba(255, 255, 255, 0.65)"; ctx.fillRect(windWaveX - 6, 0, 12, worldHeight); ctx.restore(); }
+    if (windWaveActive) {
+        ctx.save();
+        ctx.fillStyle = "rgba(255, 255, 255, 0.25)";
+        ctx.fillRect(windWaveX - 25, 0, 50, worldHeight);
+        ctx.fillStyle = "rgba(255, 255, 255, 0.65)";
+        ctx.fillRect(windWaveX - 6, 0, 12, worldHeight);
+        ctx.restore();
+    }
 
-    for (let s of blinkShadows) { ctx.save(); ctx.translate(s.x, s.y); if (s.facingRight) ctx.scale(1, 1); else ctx.scale(-1, 1); ctx.globalAlpha = s.alpha * 0.6; if (assets.fly1.complete) ctx.drawImage(assets.fly1, -mosquito.size / 2, -mosquito.size / 2, mosquito.size, mosquito.size); ctx.restore(); }
-    for (let p of bloodParticles) { ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2); ctx.fillStyle = p.color ? p.color : `rgba(220, 20, 60, ${p.alpha})`; ctx.fill(); }
+    for (let s of blinkShadows) {
+        ctx.save();
+        ctx.translate(s.x, s.y);
+        if (s.facingRight) ctx.scale(1, 1);
+        else ctx.scale(-1, 1);
+        ctx.globalAlpha = s.alpha * 0.6;
+        if (assets.fly1.complete) {
+            ctx.drawImage(assets.fly1, -mosquito.size / 2, -mosquito.size / 2, mosquito.size, mosquito.size);
+        }
+        ctx.restore();
+    }
 
-    ctx.save(); ctx.translate(mosquito.x, mosquito.y);
+    for (let p of bloodParticles) {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        ctx.fillStyle = p.color ? p.color : `rgba(220, 20, 60, ${p.alpha})`;
+        ctx.fill();
+    }
+
+    ctx.save();
+    ctx.translate(mosquito.x, mosquito.y);
     const curTime = timestamp || performance.now();
-    if (mosquito.invincibleTimer > 0 && Math.floor(curTime / 40) % 2 === 0) ctx.globalAlpha = 0.4;
+    if (mosquito.invincibleTimer > 0 && Math.floor(curTime / 40) % 2 === 0) {
+        ctx.globalAlpha = 0.4;
+    }
+
     if (mosquito.isDead) {
         if (mosquito.deathType === "SLAPPED") {
-            ctx.scale(1.8, 0.3); if (assets.dizzy.complete) ctx.drawImage(assets.dizzy, -mosquito.size / 2, -mosquito.size / 2, mosquito.size, mosquito.size);
-            ctx.save(); ctx.scale(1 / 1.8, 1 / 0.3); ctx.fillStyle = "rgba(255, 255, 255, 0.65)"; ctx.beginPath(); ctx.arc(0, soulY - 20, 10, 0, Math.PI * 2); ctx.fill(); ctx.strokeStyle = "gold"; ctx.lineWidth = 1.5; ctx.strokeRect(-6, soulY - 35, 12, 3); ctx.restore();
-        } else { ctx.rotate(Math.PI); if (assets.dizzy.complete) ctx.drawImage(assets.dizzy, -mosquito.size / 2, -mosquito.size / 2, mosquito.size, mosquito.size); }
+            ctx.scale(1.8, 0.3);
+            if (assets.dizzy.complete) ctx.drawImage(assets.dizzy, -mosquito.size / 2, -mosquito.size / 2, mosquito.size, mosquito.size);
+            ctx.save();
+            ctx.scale(1 / 1.8, 1 / 0.3);
+            ctx.fillStyle = "rgba(255, 255, 255, 0.65)";
+            ctx.beginPath();
+            ctx.arc(0, soulY - 20, 10, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = "gold";
+            ctx.lineWidth = 1.5;
+            ctx.strokeRect(-6, soulY - 35, 12, 3);
+            ctx.restore();
+        } else {
+            ctx.rotate(Math.PI);
+            if (assets.dizzy.complete) ctx.drawImage(assets.dizzy, -mosquito.size / 2, -mosquito.size / 2, mosquito.size, mosquito.size);
+        }
     } else {
-        if (mosquito.facingRight) ctx.scale(1, 1); else ctx.scale(-1, 1);
+        if (mosquito.facingRight) ctx.scale(1, 1);
+        else ctx.scale(-1, 1);
+
         let currentImg = assets.fly1;
         if (isSucking && currentTarget) {
-            if (currentTarget.category === "FAT_MAN") { currentImg = assets.dizzy.complete ? assets.dizzy : assets.fly1; ctx.translate((Math.random() - 0.5) * 3, (Math.random() - 0.5) * 3); }
-            else { currentImg = assets.suck.complete ? assets.suck : assets.fly1; ctx.translate(0, Math.sin(suckTick * 2.0) * 0.8); }
-        } else currentImg = mosquito.frame === 0 ? assets.fly1 : assets.fly2;
-        if (currentImg.complete) ctx.drawImage(currentImg, -mosquito.size / 2, -mosquito.size / 2, mosquito.size, mosquito.size);
+            if (currentTarget.category === "FAT_MAN") {
+                currentImg = assets.dizzy.complete ? assets.dizzy : assets.fly1;
+                ctx.translate((Math.random() - 0.5) * 3, (Math.random() - 0.5) * 3);
+            } else {
+                currentImg = assets.suck.complete ? assets.suck : assets.fly1;
+                ctx.translate(0, Math.sin(suckTick * 2.0) * 0.8);
+            }
+        } else {
+            currentImg = mosquito.frame === 0 ? assets.fly1 : assets.fly2;
+        }
+
+        if (currentImg.complete) {
+            ctx.drawImage(currentImg, -mosquito.size / 2, -mosquito.size / 2, mosquito.size, mosquito.size);
+        }
     }
     ctx.restore();
 
     if (qteActive && !mosquito.isDead) {
-        ctx.save(); const offset = slapHandsDist * 160; ctx.fillStyle = "rgba(20, 20, 20, 0.75)";
-        ctx.beginPath(); ctx.ellipse(mosquito.x - offset - 40, mosquito.y, 45, 60, 0, 0, Math.PI * 2); ctx.fill();
-        ctx.beginPath(); ctx.ellipse(mosquito.x + offset + 40, mosquito.y, 45, 60, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+        ctx.save();
+        const offset = slapHandsDist * 160;
+        ctx.fillStyle = "rgba(20, 20, 20, 0.75)";
+        ctx.beginPath();
+        ctx.ellipse(mosquito.x - offset - 40, mosquito.y, 45, 60, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.ellipse(mosquito.x + offset + 40, mosquito.y, 45, 60, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
     }
     ctx.restore();
-    if (hurtFlashTimer > 0) { ctx.save(); ctx.fillStyle = `rgba(255, 0, 0, ${hurtFlashTimer * 1.5})`; ctx.fillRect(0, 0, canvas.width, canvas.height); ctx.restore(); }
+
+    if (hurtFlashTimer > 0) {
+        ctx.save();
+        ctx.fillStyle = `rgba(255, 0, 0, ${hurtFlashTimer * 1.5})`;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.restore();
+    }
 }
+
 requestAnimationFrame(gameLoop);
 </script>
 </body>
