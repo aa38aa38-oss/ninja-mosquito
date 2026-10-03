@@ -131,6 +131,7 @@ function resize() { canvas.width = window.innerWidth; canvas.height = window.inn
 window.addEventListener("resize", resize);
 resize();
 
+// 載入全套圖片素材
 const assets = {
     bg: new Image(),
     fly1: new Image(),
@@ -258,7 +259,7 @@ function showUnlockFrenzyDialog() {
     isPausedForDialog = true;
     dialogStep = "UNLOCK_FRENZY";
     dialogTitle.innerText = "⚡ 領悟最終奧義！";
-    dialogContent.innerText = "壽星精華液達到 10%！\n你已學會【奧義·大吸特吸🌪️】！\n按下後直接瞬移至壽星身邊，3隻影分身自動吸血 3 秒！";
+    dialogContent.innerText = "壽星精華液達到 10%！\n你已學會【奧義·大吸特吸🌪️】！\n按下後直接瞬移至壽星身邊自動吸血 3 秒，且完全不增加暴露值！";
     dialogBtn1.innerText = "大吸特吸！";
     dialogModal.style.display = "flex";
 }
@@ -319,7 +320,7 @@ function updateSkillsUI() {
     } else {
         frenzyBtn.classList.remove("skill-locked");
         if (frenzyActiveTimer > 0) { frenzyBtn.innerHTML = `<span>🌪️</span><span style="font-size:10px;">${frenzyActiveTimer.toFixed(1)}s</span>`; frenzyBtn.style.filter = "drop-shadow(0 0 10px #ff1744)"; }
-        else if (frenzyCooldown <= 0) { frenzyBtn.innerHTML = `<span>🌪️</span><span style="font-size:10px;">大吸特吸</span>`; frenzyBtn.style.opacity = "1"; frenzyBtn.style.filter = "none"; }
+        else if (frenzyCooldown <= 0) { frenzyBtn.innerHTML = `<span>🌪️️</span><span style="font-size:10px;">大吸特吸</span>`; frenzyBtn.style.opacity = "1"; frenzyBtn.style.filter = "none"; }
         else { frenzyBtn.innerHTML = `<span>${frenzyCooldown.toFixed(1)}</span>`; frenzyBtn.style.opacity = "0.6"; frenzyBtn.style.filter = "none"; }
     }
 }
@@ -450,7 +451,7 @@ function triggerFrenzy(e) {
                 alpha: 0.9
             });
         }
-        showDodgeEffect("🌪️ 奧義發動！自動狂吸壽星！");
+        showDodgeEffect("🌪️ 奧義發動！匿蹤狂吸壽星！");
     }
 }
 frenzyBtn.addEventListener("click", triggerFrenzy);
@@ -651,15 +652,12 @@ function gameLoop(now) {
     for (let i = hazards.length - 1; i >= 0; i--) {
         let h = hazards[i];
         if (h.type === "SWAT") {
-            if (h.warnTimer > 0) h.warnTimer -= dt;
-            else if (h.strikeTimer > 0) { h.strikeTimer -= dt; if (!h.struck && mosquito.invincibleTimer <= 0 && Math.abs(mosquito.x - h.x) < h.width / 2 && Math.abs(mosquito.y - h.y) < h.height / 2) { h.struck = true; health = Math.max(0, health - 55); hurtFlashTimer = 0.3; if (health <= 0) triggerDeath("ZAPPED"); } }
-            else hazards.splice(i, 1);
+            if (h.warnTimer > 0) { ctx.strokeStyle = "rgba(255, 23, 68, 0.85)"; ctx.lineWidth = 2; ctx.setLineDash([4, 4]); ctx.strokeRect(h.x - h.width / 2, h.y - h.height / 2, h.width, h.height); ctx.font = "12px sans-serif"; ctx.fillStyle = "#ff1744"; ctx.fillText("⚡ 電蚊拍瞄準中！", h.x - 45, h.y - h.height / 2 - 6); }
+            else { ctx.fillStyle = "rgba(0, 229, 255, 0.45)"; ctx.strokeStyle = "#00e5ff"; ctx.lineWidth = 3; ctx.fillRect(h.x - h.width / 2, h.y - h.height / 2, h.width, h.height); ctx.strokeRect(h.x - h.width / 2, h.y - h.height / 2, h.width, h.height); }
         } else if (h.type === "COIL") {
-            h.x += h.vx * dt; h.y += h.vy * dt; h.angle += 3.5 * dt; h.life -= dt;
-            if (h.x < 30 || h.x > worldWidth - 30) h.vx *= -1; if (h.y < 30 || h.y > worldHeight - 30) h.vy *= -1;
-            if (mosquito.invincibleTimer <= 0 && Math.hypot(mosquito.x - h.x, mosquito.y - h.y) < h.radius) { health = Math.max(0, health - 40 * dt); hurtFlashTimer = 0.1; if (health <= 0) triggerDeath("COIL"); }
-            if (h.life <= 0) hazards.splice(i, 1);
+            ctx.translate(h.x, h.y); ctx.rotate(h.angle); ctx.strokeStyle = "#4e342e"; ctx.lineWidth = 4; ctx.beginPath(); ctx.arc(0, 0, h.radius, 0, Math.PI * 1.8); ctx.stroke(); ctx.fillStyle = "#ff3d00"; ctx.beginPath(); ctx.arc(h.radius, 0, 3.5, 0, Math.PI * 2); ctx.fill();
         }
+        ctx.restore();
     }
 
     if (!isSucking) { health = Math.max(0, health - 3.5 * dt); if (health <= 0) triggerDeath("STARVED"); }
@@ -691,16 +689,16 @@ function gameLoop(now) {
     const currentTarget = getCurrentTarget();
     const statusText = document.getElementById("status-text");
 
-    // 吸血邏輯：大招加成調整為 1.15 倍，維持挑戰性
+    // 吸血邏輯：開奧義狂吸猛吸期間，完全不增加暴露值 (alertSpd = 0)
     if (isSucking) {
         suckTick += dt * 18;
         if (!currentTarget) { statusText.innerText = "❌ 咬到衣服或紙張！無法吸血"; statusText.style.color = "#bbb"; }
         else if (currentTarget.category === "BIRTHDAY_BOY") {
             const isFrenzyActive = frenzyActiveTimer > 0;
-            let frenzyMul = isFrenzyActive ? 1.15 : 1.0; // 調降為 1.15 倍
+            let frenzyMul = isFrenzyActive ? 1.15 : 1.0;
             let rateMod = (muscleTight ? 0.5 : 1.0) * frenzyMul;
             let gain = 22 * rateMod;
-            let alertSpd = 36; // 恢復正常的警備速度，避免遊戲過於簡單
+            let alertSpd = isFrenzyActive ? 0 : 36; // 奧義期間設定為 0，完全不增加暴露值！
             let prevEssence = essence;
 
             essence = Math.min(100, essence + gain * dt);
@@ -719,7 +717,7 @@ function gameLoop(now) {
                 showAllCompleteDialog();
             }
 
-            statusText.innerText = isFrenzyActive ? `🌪️ 【影分身狂吸中】自動吸取壽星精華液！` : `🩸 汲取【${currentTarget.name}】精華液中！`;
+            statusText.innerText = isFrenzyActive ? `🌪️ 【影分身狂吸中】匿蹤吸取壽星精華液中！` : `🩸 汲取【${currentTarget.name}】精華液中！`;
             statusText.style.color = "#ff1744";
 
             if (Math.random() < 0.6) _spawnBlood(mosquito.facingRight ? 11 : -11, 16, true);
@@ -780,7 +778,7 @@ function render(currentTarget, timestamp) {
 
             ctx.beginPath();
             ctx.moveTo(f.targetX - 20, f.targetY); ctx.lineTo(f.targetX + 20, f.targetY);
-            ctx.moveTo(f.targetX, f.targetY - 20); ctx.lineTo(f.targetX + 20, f.targetY);
+            ctx.moveTo(f.targetX, f.targetY - 20); ctx.lineTo(f.targetX + 20, f.targetY + 20);
             ctx.stroke();
         }
 
