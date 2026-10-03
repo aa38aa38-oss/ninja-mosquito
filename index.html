@@ -16,1157 +16,247 @@
             width: 100%;
             height: 100%;
             overflow: hidden;
-            background-color: #000;
+            background-color: #0b0c10;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         }
-        #game-container {
+
+        #splash-container {
             position: relative;
             width: 100vw;
             height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            align-items: center;
+            padding-bottom: env(safe-area-inset-bottom, 45px);
             overflow: hidden;
-        }
-        canvas {
-            display: block;
-            width: 100%;
-            height: 100%;
+            background: radial-gradient(circle at 50% 30%, #1a1c2e 0%, #08090d 100%);
         }
 
-        /* 頂部 HUD (半透明懸浮) */
-        #hud {
-            position: absolute;
-            top: env(safe-area-inset-top, 15px);
-            left: 20px;
-            width: 280px;
-            max-width: 65vw;
-            color: #fff;
-            text-shadow: 2px 2px 4px #000;
-            pointer-events: none;
-            z-index: 30;
-        }
-        #status-text {
-            font-size: 15px;
-            font-weight: bold;
-            color: #ffeb3b;
-            margin-bottom: 6px;
-            white-space: nowrap;
-        }
-        .bar-container {
-            margin-bottom: 4px;
-        }
-        .bar-label {
-            font-size: 11px;
-            margin-bottom: 2px;
-            color: #ddd;
-        }
-        .progress-bg {
-            width: 100%;
-            height: 10px;
-            background: rgba(0, 0, 0, 0.65);
-            border: 1px solid rgba(255, 255, 255, 0.35);
-            border-radius: 5px;
-            overflow: hidden;
-        }
-        #essence-bar {
-            width: 0%;
-            height: 100%;
-            background: linear-gradient(90deg, #ff1744, #ff5252);
-        }
-        #health-bar {
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, #43a047, #76ff03);
-            transition: width 0.08s ease-out;
-        }
-        #alert-bar {
-            width: 0%;
-            height: 100%;
-            background: linear-gradient(90deg, #ff9100, #d50000);
-            transition: width 0.08s linear;
-        }
-
-        /* 右上角：熱區檢視切換開關 */
-        #debug-btn {
-            position: absolute;
-            top: env(safe-area-inset-top, 15px);
-            right: 20px;
-            padding: 6px 12px;
-            background: rgba(0, 0, 0, 0.6);
-            border: 1px solid rgba(255, 255, 255, 0.5);
-            border-radius: 14px;
-            color: #fff;
-            font-size: 12px;
-            z-index: 35;
-            cursor: pointer;
-        }
-
-        /* 警覺度 100% QTE 提示 */
-        #qte-overlay {
-            position: absolute;
-            top: 25%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            color: #ff1744;
-            font-size: 26px;
-            font-weight: 900;
-            text-shadow: 0 0 10px #000, 0 0 20px #ff1744;
-            display: none;
-            z-index: 45;
-            pointer-events: none;
-            animation: pulse 0.15s infinite alternate;
-            text-align: center;
-        }
-        @keyframes pulse {
-            0% { transform: translate(-50%, -50%) scale(1.0); }
-            100% { transform: translate(-50%, -50%) scale(1.15); }
-        }
-
-        /* 完美閃避提示 */
-        #dodge-popup {
-            position: absolute;
-            top: 40%;
-            left: 50%;
-            transform: translate(-50%, -50%) scale(0.8);
-            color: #00e5ff;
-            font-size: 32px;
-            font-weight: 900;
-            font-style: italic;
-            text-shadow: 0 0 10px #000, 0 0 20px #00e5ff;
-            display: none;
-            z-index: 48;
-            pointer-events: none;
-            transition: transform 0.2s ease-out, opacity 0.3s ease-out;
-        }
-
-        /* 左半邊動態搖桿感應區 */
-        #touch-left-zone {
+        /* 封面主視覺圖片 */
+        #cover-img {
             position: absolute;
             top: 0;
             left: 0;
-            width: 55vw;
-            height: 100vh;
-            z-index: 10;
-            touch-action: none;
-        }
-        #arena-joystick {
-            position: absolute;
-            width: 140px;
-            height: 140px;
-            margin-left: -70px;
-            margin-top: -70px;
-            border-radius: 50%;
-            background: radial-gradient(circle, rgba(255, 255, 255, 0.08) 0%, rgba(0, 0, 0, 0.45) 80%);
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            box-shadow: 0 0 15px rgba(0, 0, 0, 0.6), inset 0 0 10px rgba(255, 255, 255, 0.1);
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: center;
+            z-index: 1;
             pointer-events: none;
-            display: none;
-            z-index: 15;
+            transition: opacity 0.3s ease;
         }
-        #arena-knob {
+
+        /* 漸層遮罩，確保底端按鈕清晰易讀 */
+        .bottom-vignette {
             position: absolute;
-            width: 56px;
-            height: 56px;
-            top: 42px;
-            left: 42px;
-            border-radius: 50%;
-            background: radial-gradient(circle, rgba(255, 255, 255, 0.9) 0%, rgba(200, 200, 200, 0.6) 100%);
-            border: 2px solid rgba(255, 255, 255, 0.8);
-            box-shadow: 0 0 12px rgba(255, 255, 255, 0.5);
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 40%;
+            background: linear-gradient(to top, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0) 100%);
+            z-index: 2;
             pointer-events: none;
         }
 
-        /* 右側動作按鈕 */
-        #action-container {
-            position: absolute;
-            right: 25px;
-            bottom: 35px;
+        /* 按鈕區塊 */
+        .action-group {
+            position: relative;
+            z-index: 5;
             display: flex;
             flex-direction: column;
-            gap: 18px;
-            z-index: 25;
-            touch-action: none;
-        }
-        .hud-btn {
-            width: 78px;
-            height: 78px;
-            border-radius: 50%;
-            color: #fff;
-            font-size: 16px;
-            font-weight: bold;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            cursor: pointer;
-            backdrop-filter: blur(4px);
-            touch-action: none;
-            transition: transform 0.08s ease;
-        }
-        #suck-btn {
-            background: radial-gradient(circle, rgba(229, 57, 53, 0.8) 0%, rgba(183, 28, 28, 0.8) 100%);
-            border: 2.5px solid rgba(255, 138, 128, 0.7);
-            box-shadow: 0 0 16px rgba(211, 47, 47, 0.6);
-        }
-        #suck-btn:active, #suck-btn.pressed {
-            transform: scale(0.9);
-            background: radial-gradient(circle, rgba(255, 23, 68, 0.95) 0%, rgba(213, 0, 0, 0.95) 100%);
-        }
-        #blink-btn {
-            background: radial-gradient(circle, rgba(0, 176, 255, 0.8) 0%, rgba(0, 145, 234, 0.85) 100%);
-            border: 2.5px solid rgba(128, 222, 234, 0.8);
-            box-shadow: 0 0 14px rgba(0, 176, 255, 0.6);
-        }
-        #blink-btn:active {
-            transform: scale(0.9);
+            gap: 15px;
+            width: 84%;
+            max-width: 320px;
+            margin-bottom: 25px;
         }
 
-        /* 死亡/失敗結算大幕 */
-        #game-over-screen {
+        .menu-btn {
+            width: 100%;
+            padding: 15px 0;
+            border-radius: 35px;
+            font-size: 19px;
+            font-weight: 900;
+            letter-spacing: 2px;
+            text-align: center;
+            color: #ffffff;
+            cursor: pointer;
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            transition: transform 0.12s ease, box-shadow 0.15s ease;
+            text-decoration: none;
+            display: block;
+        }
+
+        #start-btn {
+            background: linear-gradient(135deg, #ff1744 0%, #c62828 100%);
+            border: 2px solid #ff8a80;
+            box-shadow: 0 0 22px rgba(255, 23, 68, 0.7);
+            animation: pulseGlow 1.5s infinite alternate;
+        }
+
+        @keyframes pulseGlow {
+            0% {
+                transform: scale(1.0);
+                box-shadow: 0 0 16px rgba(255, 23, 68, 0.55);
+            }
+            100% {
+                transform: scale(1.03);
+                box-shadow: 0 0 28px rgba(255, 23, 68, 0.95);
+            }
+        }
+
+        #how-to-play-btn {
+            background: rgba(26, 28, 44, 0.85);
+            border: 1.5px solid rgba(255, 255, 255, 0.45);
+            font-size: 16px;
+            color: #e0e0e0;
+        }
+
+        .menu-btn:active {
+            transform: scale(0.94) !important;
+        }
+
+        /* 遊戲說明彈窗 */
+        #modal-overlay {
             position: absolute;
             top: 0;
             left: 0;
             width: 100vw;
             height: 100vh;
-            background: rgba(0, 0, 0, 0.88);
+            background: rgba(0, 0, 0, 0.75);
+            z-index: 20;
             display: none;
-            flex-direction: column;
             justify-content: center;
             align-items: center;
-            z-index: 50;
-            color: #fff;
             backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
         }
-        #death-title {
-            font-size: 38px;
-            font-weight: 900;
-            color: #ff1744;
-            letter-spacing: 2px;
-            margin-bottom: 12px;
-            text-shadow: 0 0 15px rgba(255, 23, 68, 0.8);
+
+        #help-dialog {
+            width: 86%;
+            max-width: 350px;
+            background: rgba(18, 20, 32, 0.96);
+            border: 2px solid #00e5ff;
+            border-radius: 20px;
+            padding: 24px 20px;
+            color: #ffffff;
+            box-shadow: 0 0 25px rgba(0, 229, 255, 0.4);
         }
-        #death-reason {
-            font-size: 16px;
-            color: #eee;
-            margin-bottom: 25px;
-            max-width: 80%;
+
+        #help-dialog h3 {
+            color: #00e5ff;
+            font-size: 21px;
+            margin-bottom: 15px;
             text-align: center;
-            line-height: 1.5;
+            letter-spacing: 1px;
         }
-        .game-over-btn-group {
+
+        .rule-item {
             display: flex;
-            gap: 15px;
+            align-items: flex-start;
+            margin-bottom: 12px;
+            font-size: 14px;
+            line-height: 1.5;
+            color: #d1d5db;
         }
-        .over-btn {
-            padding: 12px 30px;
+
+        .rule-item span.icon {
+            margin-right: 8px;
             font-size: 16px;
-            font-weight: bold;
-            color: #fff;
-            border-radius: 28px;
+        }
+
+        .rule-item b {
+            color: #ffffff;
+        }
+
+        #close-dialog-btn {
+            margin-top: 16px;
+            width: 100%;
+            padding: 12px 0;
+            background: #00b0ff;
+            border: none;
+            border-radius: 24px;
+            color: #ffffff;
+            font-weight: 800;
+            font-size: 16px;
             cursor: pointer;
-            transition: transform 0.1s ease;
-            text-align: center;
+            transition: opacity 0.1s;
         }
-        #retry-btn {
-            background: linear-gradient(135deg, #d50000, #ff5252);
-            border: 2px solid #fff;
-            box-shadow: 0 0 15px rgba(255, 82, 82, 0.6);
-        }
-        #home-btn {
-            background: rgba(40, 40, 50, 0.85);
-            border: 2px solid rgba(255, 255, 255, 0.6);
-        }
-        .over-btn:active {
-            transform: scale(0.92);
+
+        #close-dialog-btn:active {
+            opacity: 0.85;
         }
     </style>
 </head>
 <body>
 
-<div id="game-container">
-    <canvas id="gameCanvas"></canvas>
+<div id="splash-container">
+    <!-- 封面視覺圖檔：優先讀取 cover.png，若不存在則備援搜尋同資料夾圖檔 -->
+    <img id="cover-img" src="cover.png" alt="遊戲封面" onerror="handleImageFallback(this)">
 
-    <div id="touch-left-zone"></div>
-    <div id="arena-joystick">
-        <div id="arena-knob"></div>
+    <div class="bottom-vignette"></div>
+
+    <div class="action-group">
+        <a id="start-btn" class="menu-btn" href="index.html">START GAME</a>
+        <div id="how-to-play-btn" class="menu-btn">HOW TO PLAY</div>
     </div>
 
-    <div id="debug-btn">👁 顯示熱區</div>
-    <div id="qte-overlay">⚠️ 巨掌合圍！按【瞬移⚡】閃避！</div>
-    <div id="dodge-popup">⚡ DODGE! 完美閃避！</div>
-
-    <div id="hud">
-        <div id="status-text">目標：探索合照尋找壽星</div>
-        <div class="bar-container">
-            <div class="bar-label">壽星精華液</div>
-            <div class="progress-bg"><div id="essence-bar"></div></div>
-        </div>
-        <div class="bar-container">
-            <div class="bar-label">蚊子生命值 (未吸血持續扣減)</div>
-            <div class="progress-bg"><div id="health-bar"></div></div>
-        </div>
-        <div class="bar-container">
-            <div class="bar-label">現場警覺度</div>
-            <div class="progress-bg"><div id="alert-bar"></div></div>
-        </div>
-    </div>
-
-    <div id="action-container">
-        <div id="suck-btn" class="hud-btn">💉 吸血</div>
-        <div id="blink-btn" class="hud-btn">⚡ 瞬移</div>
-    </div>
-
-    <!-- 死亡結算畫面 -->
-    <div id="game-over-screen">
-        <div id="death-title">啪！忍道終結</div>
-        <div id="death-reason">壽星神掌從天而降，你被拍成了肉餅...</div>
-        <div class="game-over-btn-group">
-            <div id="retry-btn" class="over-btn">再試一次</div>
-            <div id="home-btn" class="over-btn">回首頁</div>
+    <!-- 遊戲指南彈窗 -->
+    <div id="modal-overlay">
+        <div id="help-dialog">
+            <h3>🥷 忍者蚊子修練指南</h3>
+            <div class="rule-item">
+                <span class="icon">🩸</span>
+                <div><b>飢餓機制</b>：若長時間未吸血，體力會逐漸耗盡，必須迅速尋找皮膚補充！</div>
+            </div>
+            <div class="rule-item">
+                <span class="icon">🎯</span>
+                <div><b>辨識目標</b>：汲取【壽星（黑衣比讚）】精華；誤咬【胖子】將中毒扣血！</div>
+            </div>
+            <div class="rule-item">
+                <span class="icon">⚡</span>
+                <div><b>瞬移忍術</b>：推動搖桿時按瞬移可穿越掌風、閃避電蚊拍與各類陷阱。</div>
+            </div>
+            <div class="rule-item">
+                <span class="icon">💥</span>
+                <div><b>拍擊逃脫</b>：警覺度達 100% 時巨掌將合攏，看準時機以瞬移脫身！</div>
+            </div>
+            <button id="close-dialog-btn">理解，出發！</button>
         </div>
     </div>
 </div>
 
 <script>
-const canvas = document.getElementById("gameCanvas");
-const ctx = canvas.getContext("2d");
+    // 圖片載入容錯備援：若 cover.png 不存在，嘗試載入其他可能檔名
+    function handleImageFallback(imgElement) {
+        const fallbacks = ["cover.PNG", "cover.jpg", "cover.jpeg", "封面.png", "封面.jpg"];
+        const currentSrc = imgElement.getAttribute("data-try-index") || "0";
+        const tryIndex = parseInt(currentSrc, 10);
 
-function resize() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-}
-window.addEventListener("resize", resize);
-resize();
-
-// 載入圖片素材
-const assets = {
-    bg: new Image(),
-    fly1: new Image(),
-    fly2: new Image(),
-    suck: new Image(),
-    dizzy: new Image()
-};
-assets.bg.src = "bg_level1.png";
-assets.fly1.src = "mosquito_fly_1.png";
-assets.fly2.src = "mosquito_fly_2.png";
-assets.suck.src = "mosquito_suck.png";
-assets.dizzy.src = "mosquito_dizzy.png";
-
-let worldWidth = 740;
-let worldHeight = 842;
-
-assets.bg.onload = function() {
-    worldWidth = assets.bg.naturalWidth || 740;
-    worldHeight = assets.bg.naturalHeight || 842;
-    resetGame();
-};
-
-const camera = { x: 0, y: 0, zoom: 3.8 };
-
-const mosquito = {
-    x: 389,
-    y: 700,
-    size: 32,
-    speed: 260,
-    facingRight: true,
-    frame: 0,
-    frameTimer: 0,
-    isDead: false,
-    deathType: "",
-    invincibleTimer: 0
-};
-
-// 進入 index.html 即為直接開始遊戲
-let isGameStarted = true;
-
-let essence = 0;
-let health = 100;
-let alertVal = 0;
-
-let isSucking = false;
-let blinkCooldown = 0;
-let joyVector = { x: 0, y: 0 };
-
-let bloodParticles = [];
-let blinkShadows = [];
-let showDebugBoxes = false;
-
-let hazards = [];
-let hazardSpawnTimer = 0;
-
-let windWaveTimer = 0;
-let windWaveActive = false;
-let windWaveX = -200;
-let windWaveWarning = false;
-let screenShakeTimer = 0;
-let hurtFlashTimer = 0;
-let qteActive = false;
-let qteTimer = 0;
-let slapHandsDist = 1.0;
-let deathAnimTimer = 0;
-let soulY = 0;
-
-document.getElementById("debug-btn").addEventListener("click", () => {
-    showDebugBoxes = !showDebugBoxes;
-    document.getElementById("debug-btn").innerText = showDebugBoxes ? "關閉熱區" : "👁 顯示熱區";
-});
-
-function resetGame() {
-    mosquito.x = 389;
-    mosquito.y = 700;
-    mosquito.isDead = false;
-    mosquito.deathType = "";
-    mosquito.invincibleTimer = 0;
-    essence = 0;
-    health = 100;
-    alertVal = 0;
-    isSucking = false;
-    blinkCooldown = 0;
-    qteActive = false;
-    qteTimer = 0;
-    slapHandsDist = 1.0;
-    deathAnimTimer = 0;
-    soulY = 0;
-    hurtFlashTimer = 0;
-    windWaveActive = false;
-    windWaveWarning = false;
-    hazards = [];
-    hazardSpawnTimer = 0;
-    bloodParticles = [];
-    blinkShadows = [];
-    document.getElementById("qte-overlay").style.display = "none";
-    document.getElementById("dodge-popup").style.display = "none";
-    document.getElementById("game-over-screen").style.display = "none";
-}
-
-document.getElementById("retry-btn").addEventListener("click", resetGame);
-document.getElementById("home-btn").addEventListener("click", () => {
-    window.location.href = "home.html";
-});
-
-function getCharacterAreas() {
-    return [
-        { category: "BIRTHDAY_BOY", name: "壽星臉部", x: 385, y: 30, w: 130, h: 160 },
-        { category: "BIRTHDAY_BOY", name: "壽星雙手手臂", x: 360, y: 190, w: 180, h: 90 },
-        { category: "BIRTHDAY_BOY", name: "壽星小腿與拖鞋", x: 355, y: 550, w: 135, h: 225 },
-        { category: "FAT_MAN", name: "胖子臉部", x: 250, y: 35, w: 105, h: 140 },
-        { category: "FAT_MAN", name: "胖子手臂與比讚", x: 245, y: 180, w: 95, h: 95 },
-        { category: "FAT_MAN", name: "胖子小腿", x: 275, y: 530, w: 80, h: 160 },
-        { category: "OTHER_FRIEND", name: "白衣朋友臉部", x: 110, y: 25, w: 110, h: 145 },
-        { category: "OTHER_FRIEND", name: "白衣朋友手臂比讚", x: 25, y: 175, w: 115, h: 115 },
-        { category: "OTHER_FRIEND", name: "白衣朋友小腿", x: 155, y: 520, w: 105, h: 210 },
-        { category: "OTHER_FRIEND", name: "灰衣朋友臉部", x: 530, y: 35, w: 110, h: 150 },
-        { category: "OTHER_FRIEND", name: "灰衣朋友下垂手臂", x: 615, y: 260, w: 95, h: 220 },
-        { category: "OTHER_FRIEND", name: "灰衣朋友露腳踝", x: 620, y: 690, w: 90, h: 140 }
-    ];
-}
-
-function getCurrentTarget() {
-    const areas = getCharacterAreas();
-    for (let a of areas) {
-        if (mosquito.x >= a.x && mosquito.x <= a.x + a.w &&
-            mosquito.y >= a.y && mosquito.y <= a.y + a.h) {
-            return a;
-        }
-    }
-    return null;
-}
-
-const leftZone = document.getElementById("touch-left-zone");
-const arenaJoy = document.getElementById("arena-joystick");
-const arenaKnob = document.getElementById("arena-knob");
-let joyActive = false;
-let joyOrigin = { x: 0, y: 0 };
-let currentTouchId = null;
-
-function onJoyStart(clientX, clientY, touchId = null) {
-    if (mosquito.isDead) return;
-    joyActive = true;
-    currentTouchId = touchId;
-    joyOrigin = { x: clientX, y: clientY };
-    arenaJoy.style.left = clientX + "px";
-    arenaJoy.style.top = clientY + "px";
-    arenaJoy.style.display = "block";
-    arenaKnob.style.transform = "translate(0px, 0px)";
-    joyVector = { x: 0, y: 0 };
-}
-
-function onJoyMove(clientX, clientY) {
-    if (!joyActive || mosquito.isDead) return;
-    let dx = clientX - joyOrigin.x;
-    let dy = clientY - joyOrigin.y;
-    const dist = Math.hypot(dx, dy);
-    const maxRadius = 55;
-    if (dist > maxRadius) {
-        dx = (dx / dist) * maxRadius;
-        dy = (dy / dist) * maxRadius;
-    }
-    arenaKnob.style.transform = `translate(${dx}px, ${dy}px)`;
-    joyVector = { x: dx / maxRadius, y: dy / maxRadius };
-}
-
-function onJoyEnd() {
-    joyActive = false;
-    currentTouchId = null;
-    arenaJoy.style.display = "none";
-    arenaKnob.style.transform = "translate(0px, 0px)";
-    joyVector = { x: 0, y: 0 };
-}
-
-leftZone.addEventListener("touchstart", (e) => {
-    e.preventDefault();
-    if (joyActive || mosquito.isDead) return;
-    const t = e.changedTouches[0];
-    onJoyStart(t.clientX, t.clientY, t.identifier);
-}, { passive: false });
-
-window.addEventListener("touchmove", (e) => {
-    if (!joyActive || mosquito.isDead) return;
-    for (let t of e.touches) {
-        if (t.identifier === currentTouchId) {
-            onJoyMove(t.clientX, t.clientY);
-            break;
-        }
-    }
-});
-
-window.addEventListener("touchend", (e) => {
-    if (!joyActive) return;
-    for (let t of e.changedTouches) {
-        if (t.identifier === currentTouchId) {
-            onJoyEnd();
-            break;
-        }
-    }
-});
-
-leftZone.addEventListener("mousedown", (e) => onJoyStart(e.clientX, e.clientY));
-window.addEventListener("mousemove", (e) => { if (joyActive && currentTouchId === null) onJoyMove(e.clientX, e.clientY); });
-window.addEventListener("mouseup", (e) => { if (joyActive && currentTouchId === null) onJoyEnd(); });
-
-const suckBtn = document.getElementById("suck-btn");
-const blinkBtn = document.getElementById("blink-btn");
-
-function startSuck() {
-    if (mosquito.isDead) return;
-    isSucking = true;
-    suckBtn.classList.add("pressed");
-}
-function stopSuck() {
-    isSucking = false;
-    suckBtn.classList.remove("pressed");
-}
-
-suckBtn.addEventListener("mousedown", startSuck);
-window.addEventListener("mouseup", stopSuck);
-suckBtn.addEventListener("touchstart", (e) => { e.preventDefault(); startSuck(); }, { passive: false });
-window.addEventListener("touchend", stopSuck);
-
-function showDodgeEffect() {
-    const popup = document.getElementById("dodge-popup");
-    popup.style.display = "block";
-    popup.style.transform = "translate(-50%, -50%) scale(1.2)";
-    popup.style.opacity = "1";
-    setTimeout(() => {
-        popup.style.transform = "translate(-50%, -70%) scale(0.9)";
-        popup.style.opacity = "0";
-        setTimeout(() => { popup.style.display = "none"; }, 300);
-    }, 500);
-}
-
-function triggerBlink(e) {
-    if (e && e.preventDefault) e.preventDefault();
-    if (blinkCooldown <= 0 && !mosquito.isDead) {
-        blinkCooldown = 2.0;
-        stopSuck();
-
-        let dirX = joyVector.x;
-        let dirY = joyVector.y;
-        const mag = Math.hypot(dirX, dirY);
-
-        if (mag > 0.1) {
-            dirX /= mag;
-            dirY /= mag;
-        } else {
-            dirX = mosquito.facingRight ? 1 : -1;
-            dirY = 0;
-        }
-
-        const blinkDist = 180;
-
-        blinkShadows.push({ x: mosquito.x, y: mosquito.y, alpha: 0.8, facingRight: mosquito.facingRight });
-        blinkShadows.push({ x: mosquito.x + dirX * 60, y: mosquito.y + dirY * 60, alpha: 0.5, facingRight: mosquito.facingRight });
-
-        mosquito.x += dirX * blinkDist;
-        mosquito.y += dirY * blinkDist;
-        mosquito.invincibleTimer = 0.45;
-
-        mosquito.x = Math.max(25, Math.min(worldWidth - 25, mosquito.x));
-        mosquito.y = Math.max(25, Math.min(worldHeight - 25, mosquito.y));
-
-        for (let i = 0; i < 16; i++) {
-            bloodParticles.push({
-                x: mosquito.x + (Math.random() - 0.5) * 30,
-                y: mosquito.y + (Math.random() - 0.5) * 30,
-                vx: (Math.random() - 0.5) * 160,
-                vy: (Math.random() - 0.5) * 160,
-                radius: Math.random() * 3 + 2,
-                alpha: 1.0,
-                color: "#00e5ff"
-            });
-        }
-
-        if (windWaveActive && Math.abs(mosquito.x - windWaveX) < 160) {
-            showDodgeEffect();
-            alertVal = Math.max(0, alertVal - 15);
-        }
-
-        if (qteActive) {
-            qteActive = false;
-            alertVal = 40;
-            showDodgeEffect();
-            document.getElementById("qte-overlay").style.display = "none";
-        }
-    }
-}
-
-blinkBtn.addEventListener("click", triggerBlink);
-blinkBtn.addEventListener("touchstart", triggerBlink, { passive: false });
-
-function triggerDeath(reason) {
-    if (mosquito.isDead) return;
-    mosquito.isDead = true;
-    mosquito.deathType = reason;
-    stopSuck();
-    document.getElementById("qte-overlay").style.display = "none";
-
-    const reasonText = document.getElementById("death-reason");
-    if (reason === "STARVED") {
-        reasonText.innerText = "長時間未吸血，體力耗盡飢餓墜地身亡...";
-    } else if (reason === "SLAPPED") {
-        reasonText.innerText = "壽星四人合體神掌合攏！你被拍扁貼在皮膚上，精華液全濺光了...";
-        for (let i = 0; i < 45; i++) {
-            bloodParticles.push({
-                x: mosquito.x, y: mosquito.y,
-                vx: (Math.random() - 0.5) * 180, vy: (Math.random() - 0.5) * 180,
-                radius: Math.random() * 4 + 2, alpha: 1.0, isRed: true
-            });
-        }
-    } else if (reason === "ZAPPED") {
-        reasonText.innerText = "啪滋！被高壓電蚊拍正面擊中，當場碳化化為灰燼！";
-    } else if (reason === "SPRAY") {
-        reasonText.innerText = "吸入過量殺蟲劑毒氣，神經麻痺窒息死亡...";
-    } else if (reason === "COIL") {
-        reasonText.innerText = "被旋轉燃燒的蚊香燙傷烤焦，忍道終結...";
-    } else if (reason === "WIND_STRIKE") {
-        reasonText.innerText = "強烈掌風正面命中！脆弱的翅膀與身軀當場碎裂墜地...";
-    } else {
-        reasonText.innerText = "嘔！吸到太多胖子油膩毒血，蚊子當場暴斃身亡...";
-    }
-
-    setTimeout(() => {
-        document.getElementById("game-over-screen").style.display = "flex";
-    }, 1800);
-}
-
-function spawnHazard() {
-    const types = ["SPRAY", "SWAT", "COIL"];
-    const type = types[Math.floor(Math.random() * types.length)];
-
-    if (type === "SPRAY") {
-        const fromLeft = Math.random() < 0.5;
-        hazards.push({
-            type: "SPRAY",
-            x: fromLeft ? 0 : worldWidth,
-            y: mosquito.y + (Math.random() - 0.5) * 200,
-            vx: fromLeft ? 110 : -110,
-            radius: 48,
-            life: 6.0
-        });
-    } else if (type === "SWAT") {
-        hazards.push({
-            type: "SWAT",
-            x: mosquito.x + (Math.random() - 0.5) * 100,
-            y: mosquito.y + (Math.random() - 0.5) * 100,
-            warnTimer: 0.8,
-            strikeTimer: 0.35,
-            width: 80,
-            height: 80,
-            struck: false
-        });
-    } else if (type === "COIL") {
-        hazards.push({
-            type: "COIL",
-            x: Math.random() * worldWidth,
-            y: 0,
-            vx: (Math.random() - 0.5) * 140,
-            vy: 120,
-            radius: 26,
-            angle: 0,
-            life: 8.0
-        });
-    }
-}
-
-let lastTime = performance.now();
-let suckTick = 0;
-
-function gameLoop(now) {
-    const dt = (now - lastTime) / 1000;
-    lastTime = now;
-
-    if (hurtFlashTimer > 0) hurtFlashTimer -= dt;
-    if (mosquito.invincibleTimer > 0) mosquito.invincibleTimer -= dt;
-
-    if (mosquito.isDead) {
-        deathAnimTimer += dt;
-        soulY -= 35 * dt;
-        updateParticles(dt);
-        render(null, now);
-        requestAnimationFrame(gameLoop);
-        return;
-    }
-
-    if (blinkCooldown > 0) {
-        blinkCooldown -= dt;
-        if (blinkCooldown <= 0) {
-            blinkCooldown = 0;
-            blinkBtn.innerText = "⚡ 瞬移";
-            blinkBtn.style.opacity = "1";
-        } else {
-            blinkBtn.innerText = blinkCooldown.toFixed(1);
-            blinkBtn.style.opacity = "0.6";
+        if (tryIndex < fallbacks.length) {
+            imgElement.setAttribute("data-try-index", (tryIndex + 1).toString());
+            imgElement.src = fallbacks[tryIndex];
         }
     }
 
-    if (joyVector.x !== 0 || joyVector.y !== 0) {
-        mosquito.x += joyVector.x * mosquito.speed * dt;
-        mosquito.y += joyVector.y * mosquito.speed * dt;
-        if (joyVector.x > 0.05) mosquito.facingRight = true;
-        else if (joyVector.x < -0.05) mosquito.facingRight = false;
-        stopSuck();
-    }
+    const howToPlayBtn = document.getElementById("how-to-play-btn");
+    const modalOverlay = document.getElementById("modal-overlay");
+    const closeDialogBtn = document.getElementById("close-dialog-btn");
 
-    mosquito.x = Math.max(20, Math.min(worldWidth - 20, mosquito.x));
-    mosquito.y = Math.max(20, Math.min(worldHeight - 20, mosquito.y));
-
-    const targetCamX = mosquito.x - (canvas.width / 2) / camera.zoom;
-    const targetCamY = mosquito.y - (canvas.height / 2) / camera.zoom;
-    camera.x += (targetCamX - camera.x) * 0.14;
-    camera.y += (targetCamY - camera.y) * 0.14;
-
-    mosquito.frameTimer += dt;
-    if (mosquito.frameTimer > 0.09) {
-        mosquito.frame = mosquito.frame === 0 ? 1 : 0;
-        mosquito.frameTimer = 0;
-    }
-
-    hazardSpawnTimer += dt;
-    if (hazardSpawnTimer > 2.5) {
-        spawnHazard();
-        hazardSpawnTimer = 0;
-    }
-
-    for (let i = hazards.length - 1; i >= 0; i--) {
-        let h = hazards[i];
-        if (h.type === "SPRAY") {
-            h.x += h.vx * dt;
-            h.life -= dt;
-            if (mosquito.invincibleTimer <= 0) {
-                const dist = Math.hypot(mosquito.x - h.x, mosquito.y - h.y);
-                if (dist < h.radius) {
-                    health = Math.max(0, health - 28 * dt);
-                    hurtFlashTimer = 0.1;
-                    if (health <= 0) triggerDeath("SPRAY");
-                }
-            }
-            if (h.life <= 0) hazards.splice(i, 1);
-        } else if (h.type === "SWAT") {
-            if (h.warnTimer > 0) {
-                h.warnTimer -= dt;
-            } else if (h.strikeTimer > 0) {
-                h.strikeTimer -= dt;
-                if (!h.struck && mosquito.invincibleTimer <= 0) {
-                    if (Math.abs(mosquito.x - h.x) < h.width / 2 && Math.abs(mosquito.y - h.y) < h.height / 2) {
-                        h.struck = true;
-                        health = Math.max(0, health - 50);
-                        hurtFlashTimer = 0.3;
-                        if (health <= 0) triggerDeath("ZAPPED");
-                    }
-                }
-            } else {
-                hazards.splice(i, 1);
-            }
-        } else if (h.type === "COIL") {
-            h.x += h.vx * dt;
-            h.y += h.vy * dt;
-            h.angle += 3 * dt;
-            h.life -= dt;
-            if (h.x < 30 || h.x > worldWidth - 30) h.vx *= -1;
-            if (h.y < 30 || h.y > worldHeight - 30) h.vy *= -1;
-
-            if (mosquito.invincibleTimer <= 0) {
-                const dist = Math.hypot(mosquito.x - h.x, mosquito.y - h.y);
-                if (dist < h.radius) {
-                    health = Math.max(0, health - 35 * dt);
-                    hurtFlashTimer = 0.1;
-                    if (health <= 0) triggerDeath("COIL");
-                }
-            }
-            if (h.life <= 0) hazards.splice(i, 1);
-        }
-    }
-
-    if (!isSucking) {
-        health = Math.max(0, health - 3.2 * dt);
-        if (health <= 0) triggerDeath("STARVED");
-    }
-
-    if (!isSucking && !qteActive) {
-        alertVal = Math.max(0, alertVal - 10 * dt);
-    }
-
-    if (alertVal >= 40) {
-        windWaveTimer += dt;
-        if (windWaveTimer > 2.45 && !windWaveActive) {
-            windWaveWarning = true;
-        }
-        if (windWaveTimer > 2.8) {
-            windWaveActive = true;
-            windWaveWarning = false;
-            windWaveX = mosquito.x - 320;
-            windWaveTimer = 0;
-        }
-    } else {
-        windWaveTimer = 0;
-        windWaveActive = false;
-        windWaveWarning = false;
-    }
-
-    if (windWaveActive) {
-        windWaveX += 720 * dt;
-        if (Math.abs(mosquito.x - windWaveX) < 45) {
-            if (mosquito.invincibleTimer > 0) {
-                showDodgeEffect();
-                windWaveActive = false;
-            } else {
-                stopSuck();
-                mosquito.x += (mosquito.x - windWaveX > 0 ? 90 : -90);
-                windWaveActive = false;
-                health = Math.max(0, health - 20);
-                hurtFlashTimer = 0.25;
-                if (health <= 0) triggerDeath("WIND_STRIKE");
-            }
-        }
-        if (windWaveX > mosquito.x + 350) windWaveActive = false;
-    }
-
-    let muscleTight = alertVal >= 70;
-    if (muscleTight) screenShakeTimer += dt * 15;
-
-    if (alertVal >= 100 && !qteActive) {
-        qteActive = true;
-        qteTimer = 0.85;
-        slapHandsDist = 1.0;
-        document.getElementById("qte-overlay").style.display = "block";
-    }
-
-    if (qteActive) {
-        qteTimer -= dt;
-        slapHandsDist = Math.max(0, qteTimer / 0.85);
-        if (qteTimer <= 0) triggerDeath("SLAPPED");
-    }
-
-    const currentTarget = getCurrentTarget();
-    const statusText = document.getElementById("status-text");
-
-    if (isSucking) {
-        suckTick += dt * 18;
-
-        if (!currentTarget) {
-            statusText.innerText = "❌ 咬到衣服或背景！無法吸血";
-            statusText.style.color = "#bbb";
-        } else if (currentTarget.category === "BIRTHDAY_BOY") {
-            let rateMod = muscleTight ? 0.5 : 1.0;
-            let gain = (currentTarget.name.includes("臉") ? 12 : (currentTarget.name.includes("手") ? 8 : 5)) * rateMod;
-            let alertSpd = currentTarget.name.includes("臉") ? 45 : (currentTarget.name.includes("手") ? 32 : 20);
-            
-            essence = Math.min(100, essence + gain * dt);
-            alertVal = Math.min(100, alertVal + alertSpd * dt);
-            health = Math.min(100, health + 14 * dt);
-            
-            statusText.innerText = `🩸 汲取【${currentTarget.name}】精華液中！`;
-            statusText.style.color = "#ff1744";
-
-            if (Math.random() < 0.6) _spawnBlood(mosquito.facingRight ? 11 : -11, 16, true);
-        } else if (currentTarget.category === "FAT_MAN") {
-            health = Math.max(0, health - 40 * dt);
-            alertVal = 100;
-            statusText.innerText = "🌀 嘔！吸到胖子油膩毒血！警覺爆表！";
-            statusText.style.color = "#00e676";
-            if (health <= 0) triggerDeath("POISONED");
-        } else if (currentTarget.category === "OTHER_FRIEND") {
-            alertVal = Math.min(100, alertVal + 26 * dt);
-            health = Math.min(100, health + 10 * dt);
-            statusText.innerText = `🩸 正在叮咬【${currentTarget.name}】(回血有效，精華無效)`;
-            statusText.style.color = "#ff9100";
-            if (Math.random() < 0.6) _spawnBlood(mosquito.facingRight ? 11 : -11, 16, true);
-        }
-    } else {
-        if (!qteActive && hurtFlashTimer <= 0) {
-            if (windWaveWarning) {
-                statusText.innerText = "⚠️ 掌風襲來警告！準備按【瞬移⚡】閃避！";
-                statusText.style.color = "#00e5ff";
-            } else if (currentTarget) {
-                if (currentTarget.category === "BIRTHDAY_BOY") {
-                    statusText.innerText = `🟢 鎖定壽星部位：${currentTarget.name} (按住吸血回血)`;
-                    statusText.style.color = "#76ff03";
-                } else if (currentTarget.category === "FAT_MAN") {
-                    statusText.innerText = `⚠️ 這是路人胖子！(${currentTarget.name} 別吸)`;
-                    statusText.style.color = "#ff5252";
-                } else {
-                    statusText.innerText = `⚪ 發現目標：${currentTarget.name} (可吸血回血)`;
-                    statusText.style.color = "#fff";
-                }
-            } else {
-                statusText.innerText = "注意飢餓扣血！快找皮膚吸血！";
-                statusText.style.color = "#ffeb3b";
-            }
-        }
-    }
-
-    updateParticles(dt);
-
-    document.getElementById("essence-bar").style.width = essence + "%";
-    document.getElementById("health-bar").style.width = health + "%";
-    document.getElementById("alert-bar").style.width = alertVal + "%";
-
-    render(currentTarget, now);
-    requestAnimationFrame(gameLoop);
-}
-
-function updateParticles(dt) {
-    for (let i = bloodParticles.length - 1; i >= 0; i--) {
-        let p = bloodParticles[i];
-        p.x += p.vx * dt;
-        p.y += p.vy * dt;
-        p.alpha -= 2.2 * dt;
-        if (!p.color) p.vy += 100 * dt;
-        if (p.alpha <= 0) bloodParticles.splice(i, 1);
-    }
-    for (let i = blinkShadows.length - 1; i >= 0; i--) {
-        blinkShadows[i].alpha -= 3.0 * dt;
-        if (blinkShadows[i].alpha <= 0) blinkShadows.splice(i, 1);
-    }
-}
-
-function _spawnBlood(offsetX, offsetY, isRed) {
-    bloodParticles.push({
-        x: mosquito.x + offsetX,
-        y: mosquito.y + offsetY,
-        vx: (Math.random() - 0.5) * 45,
-        vy: -Math.random() * 60 - 20,
-        radius: Math.random() * 1.8 + 1.0,
-        alpha: 1.0,
-        isRed: isRed
+    howToPlayBtn.addEventListener("click", () => {
+        modalOverlay.style.display = "flex";
     });
-}
 
-function render(currentTarget, timestamp) {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    closeDialogBtn.addEventListener("click", () => {
+        modalOverlay.style.display = "none";
+    });
 
-    ctx.save();
-    
-    let shakeX = 0, shakeY = 0;
-    if (alertVal >= 70 && !mosquito.isDead) {
-        shakeX = Math.sin(screenShakeTimer) * 1.8;
-        shakeY = Math.cos(screenShakeTimer) * 1.8;
-    }
-
-    ctx.scale(camera.zoom, camera.zoom);
-    ctx.translate(-camera.x + shakeX, -camera.y + shakeY);
-
-    if (assets.bg.complete) {
-        ctx.drawImage(assets.bg, 0, 0, worldWidth, worldHeight);
-    }
-
-    if (showDebugBoxes) {
-        const areas = getCharacterAreas();
-        for (let a of areas) {
-            ctx.save();
-            if (a.category === "BIRTHDAY_BOY") {
-                ctx.fillStyle = "rgba(76, 175, 80, 0.28)";
-                ctx.strokeStyle = "rgba(76, 175, 80, 0.9)";
-            } else if (a.category === "FAT_MAN") {
-                ctx.fillStyle = "rgba(244, 67, 54, 0.28)";
-                ctx.strokeStyle = "rgba(244, 67, 54, 0.9)";
-            } else {
-                ctx.fillStyle = "rgba(33, 150, 243, 0.28)";
-                ctx.strokeStyle = "rgba(33, 150, 243, 0.9)";
-            }
-            ctx.lineWidth = 2;
-            ctx.fillRect(a.x, a.y, a.w, a.h);
-            ctx.strokeRect(a.x, a.y, a.w, a.h);
-            ctx.font = "14px sans-serif";
-            ctx.fillStyle = "#fff";
-            ctx.fillText(a.name, a.x + 4, a.y + 18);
-            ctx.restore();
+    modalOverlay.addEventListener("click", (e) => {
+        if (e.target === modalOverlay) {
+            modalOverlay.style.display = "none";
         }
-    }
-
-    for (let h of hazards) {
-        ctx.save();
-        if (h.type === "SPRAY") {
-            let grad = ctx.createRadialGradient(h.x, h.y, 5, h.x, h.y, h.radius);
-            grad.addColorStop(0, "rgba(255, 255, 255, 0.85)");
-            grad.addColorStop(0.7, "rgba(230, 245, 255, 0.45)");
-            grad.addColorStop(1, "rgba(255, 255, 255, 0)");
-            ctx.fillStyle = grad;
-            ctx.beginPath();
-            ctx.arc(h.x, h.y, h.radius, 0, Math.PI * 2);
-            ctx.fill();
-        } else if (h.type === "SWAT") {
-            if (h.warnTimer > 0) {
-                ctx.strokeStyle = "rgba(255, 23, 68, 0.85)";
-                ctx.lineWidth = 2;
-                ctx.setLineDash([4, 4]);
-                ctx.strokeRect(h.x - h.width / 2, h.y - h.height / 2, h.width, h.height);
-                ctx.font = "12px sans-serif";
-                ctx.fillStyle = "#ff1744";
-                ctx.fillText("⚡ 電蚊拍瞄準中！", h.x - 45, h.y - h.height / 2 - 6);
-            } else {
-                ctx.fillStyle = "rgba(0, 229, 255, 0.45)";
-                ctx.strokeStyle = "#00e5ff";
-                ctx.lineWidth = 3;
-                ctx.fillRect(h.x - h.width / 2, h.y - h.height / 2, h.width, h.height);
-                ctx.strokeRect(h.x - h.width / 2, h.y - h.height / 2, h.width, h.height);
-            }
-        } else if (h.type === "COIL") {
-            ctx.translate(h.x, h.y);
-            ctx.rotate(h.angle);
-            ctx.strokeStyle = "#4e342e";
-            ctx.lineWidth = 4;
-            ctx.beginPath();
-            ctx.arc(0, 0, h.radius, 0, Math.PI * 1.8);
-            ctx.stroke();
-            ctx.fillStyle = "#ff3d00";
-            ctx.beginPath();
-            ctx.arc(h.radius, 0, 3.5, 0, Math.PI * 2);
-            ctx.fill();
-        }
-        ctx.restore();
-    }
-
-    if (windWaveWarning) {
-        ctx.save();
-        ctx.strokeStyle = "rgba(0, 229, 255, 0.75)";
-        ctx.lineWidth = 2;
-        ctx.setLineDash([6, 6]);
-        ctx.beginPath();
-        ctx.moveTo(mosquito.x - 120, 0);
-        ctx.lineTo(mosquito.x - 120, worldHeight);
-        ctx.stroke();
-        ctx.restore();
-    }
-
-    if (windWaveActive) {
-        ctx.save();
-        ctx.fillStyle = "rgba(255, 255, 255, 0.25)";
-        ctx.fillRect(windWaveX - 25, 0, 50, worldHeight);
-        ctx.fillStyle = "rgba(255, 255, 255, 0.65)";
-        ctx.fillRect(windWaveX - 6, 0, 12, worldHeight);
-        ctx.restore();
-    }
-
-    for (let s of blinkShadows) {
-        ctx.save();
-        ctx.translate(s.x, s.y);
-        if (s.facingRight) ctx.scale(1, 1);
-        else ctx.scale(-1, 1);
-        ctx.globalAlpha = s.alpha * 0.6;
-        if (assets.fly1.complete) {
-            ctx.drawImage(assets.fly1, -mosquito.size / 2, -mosquito.size / 2, mosquito.size, mosquito.size);
-        }
-        ctx.restore();
-    }
-
-    for (let p of bloodParticles) {
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-        ctx.fillStyle = p.color ? p.color : `rgba(220, 20, 60, ${p.alpha})`;
-        ctx.fill();
-    }
-
-    ctx.save();
-    ctx.translate(mosquito.x, mosquito.y);
-    
-    const curTime = timestamp || performance.now();
-    if (mosquito.invincibleTimer > 0 && Math.floor(curTime / 40) % 2 === 0) {
-        ctx.globalAlpha = 0.4;
-    }
-
-    if (mosquito.isDead) {
-        if (mosquito.deathType === "SLAPPED") {
-            ctx.scale(1.8, 0.3);
-            if (assets.dizzy.complete) ctx.drawImage(assets.dizzy, -mosquito.size / 2, -mosquito.size / 2, mosquito.size, mosquito.size);
-            ctx.save();
-            ctx.scale(1 / 1.8, 1 / 0.3);
-            ctx.fillStyle = "rgba(255, 255, 255, 0.65)";
-            ctx.beginPath();
-            ctx.arc(0, soulY - 20, 10, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.strokeStyle = "gold";
-            ctx.lineWidth = 1.5;
-            ctx.strokeRect(-6, soulY - 35, 12, 3);
-            ctx.restore();
-        } else {
-            ctx.rotate(Math.PI);
-            if (assets.dizzy.complete) ctx.drawImage(assets.dizzy, -mosquito.size / 2, -mosquito.size / 2, mosquito.size, mosquito.size);
-        }
-    } else {
-        if (mosquito.facingRight) ctx.scale(1, 1);
-        else ctx.scale(-1, 1);
-
-        let currentImg = assets.fly1;
-        if (isSucking && currentTarget) {
-            if (currentTarget.category === "FAT_MAN") {
-                currentImg = assets.dizzy.complete ? assets.dizzy : assets.fly1;
-                ctx.translate((Math.random() - 0.5) * 3, (Math.random() - 0.5) * 3);
-            } else {
-                currentImg = assets.suck.complete ? assets.suck : assets.fly1;
-                ctx.translate(0, Math.sin(suckTick * 2.0) * 0.8);
-            }
-        } else {
-            currentImg = mosquito.frame === 0 ? assets.fly1 : assets.fly2;
-        }
-
-        if (currentImg.complete) {
-            ctx.drawImage(currentImg, -mosquito.size / 2, -mosquito.size / 2, mosquito.size, mosquito.size);
-        }
-    }
-    ctx.restore();
-
-    if (qteActive && !mosquito.isDead) {
-        ctx.save();
-        const offset = slapHandsDist * 160;
-        ctx.fillStyle = "rgba(20, 20, 20, 0.75)";
-        ctx.beginPath();
-        ctx.ellipse(mosquito.x - offset - 40, mosquito.y, 45, 60, 0, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.beginPath();
-        ctx.ellipse(mosquito.x + offset + 40, mosquito.y, 45, 60, 0, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
-    }
-
-    ctx.restore();
-
-    if (hurtFlashTimer > 0) {
-        ctx.save();
-        ctx.fillStyle = `rgba(255, 0, 0, ${hurtFlashTimer * 1.5})`;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.restore();
-    }
-}
-
-requestAnimationFrame(gameLoop);
+    });
 </script>
 </body>
 </html>
