@@ -98,7 +98,7 @@
             cursor: pointer;
         }
 
-        /* 劇情/教學對話框 */
+        /* 劇情/教學/勝利對話框 */
         #dialog-modal {
             position: absolute;
             top: 50%;
@@ -131,17 +131,29 @@
             color: #eee;
             margin-bottom: 18px;
             text-align: center;
+            white-space: pre-line;
         }
-        #dialog-btn {
-            padding: 10px 36px;
+        .dialog-btn-group {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            width: 100%;
+        }
+        .dialog-action-btn {
+            padding: 10px 28px;
             background: linear-gradient(135deg, #ffb300, #ff6f00);
             border: none;
             border-radius: 22px;
             color: #fff;
-            font-size: 16px;
+            font-size: 15px;
             font-weight: bold;
             cursor: pointer;
             box-shadow: 0 0 12px rgba(255, 179, 0, 0.6);
+        }
+        .dialog-action-btn.secondary {
+            background: rgba(60, 60, 75, 0.9);
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.4);
         }
 
         #qte-overlay {
@@ -228,7 +240,6 @@
             touch-action: none;
             pointer-events: none;
         }
-        /* 核心大按鈕：普攻吸血 */
         #suck-btn {
             position: absolute;
             right: 15px;
@@ -254,7 +265,6 @@
             transform: scale(0.92);
             background: radial-gradient(circle, rgba(255, 23, 68, 1) 0%, rgba(213, 0, 0, 1) 100%);
         }
-        /* 周圍技能圈 */
         .skill-btn {
             position: absolute;
             width: 58px;
@@ -275,7 +285,6 @@
         .skill-btn:active {
             transform: scale(0.9);
         }
-        /* 技能 1：瞬移 */
         #blink-btn {
             right: 110px;
             bottom: 30px;
@@ -283,14 +292,12 @@
             border: 2px solid rgba(128, 222, 234, 0.9);
             box-shadow: 0 0 14px rgba(0, 176, 255, 0.6);
         }
-        /* 技能 2 (預留技能) */
         #skill-slot2 {
             right: 105px;
             bottom: 105px;
             background: radial-gradient(circle, rgba(66, 66, 66, 0.8) 0%, rgba(33, 33, 33, 0.9) 100%);
             border: 2px solid rgba(255, 255, 255, 0.35);
         }
-        /* 技能 3 (預留技能) */
         #skill-slot3 {
             right: 30px;
             bottom: 115px;
@@ -364,11 +371,14 @@
 <div id="game-container">
     <canvas id="gameCanvas"></canvas>
 
-    <!-- 對話引導彈窗 -->
+    <!-- 劇情/教學/勝利對話彈窗 -->
     <div id="dialog-modal">
         <div id="dialog-title">任務指引</div>
         <div id="dialog-content">任務內容: 幫力維吸出來，請將壽星精華液吸滿</div>
-        <button id="dialog-btn">確定</button>
+        <div id="dialog-btns" class="dialog-btn-group">
+            <button id="dialog-btn-1" class="dialog-action-btn">確定</button>
+            <button id="dialog-btn-2" class="dialog-action-btn secondary" style="display:none;">不要</button>
+        </div>
     </div>
 
     <div id="touch-left-zone"></div>
@@ -391,7 +401,7 @@
             <div class="progress-bg"><div id="health-bar"></div></div>
         </div>
         <div class="bar-container">
-            <div class="bar-label">現場警覺度</div>
+            <div class="bar-label">暴露值</div>
             <div class="progress-bg"><div id="alert-bar"></div></div>
         </div>
     </div>
@@ -402,17 +412,14 @@
             <span>💉</span>
             <span style="font-size:12px;">吸血</span>
         </div>
-        <!-- 技能 1: 瞬移 (一開始鎖定) -->
         <div id="blink-btn" class="skill-btn skill-locked">
             <span>🔒</span>
             <span style="font-size:10px;">瞬移</span>
         </div>
-        <!-- 技能 2: 預留 -->
         <div id="skill-slot2" class="skill-btn skill-locked">
             <span>🔒</span>
             <span style="font-size:10px;">技能2</span>
         </div>
-        <!-- 技能 3: 預留 -->
         <div id="skill-slot3" class="skill-btn skill-locked">
             <span>🔒</span>
             <span style="font-size:10px;">技能3</span>
@@ -479,11 +486,13 @@ const mosquito = {
 
 let essence = 0;
 let health = 100;
-let alertVal = 0;
+let alertVal = 0; // 暴露值
 
 let isSucking = false;
 let blinkCooldown = 0;
-let hasLearnedBlink = false; // 是否已解鎖瞬移
+let hasLearnedBlink = false;
+let hasPromptedAlert10 = false; // 是否已彈出暴露值10%提示
+let isStageComplete = false;     // 是否已吸滿100%過關
 let joyVector = { x: 0, y: 0 };
 
 let bloodParticles = [];
@@ -493,7 +502,6 @@ let showDebugBoxes = false;
 let hazards = [];
 let hazardSpawnTimer = 0;
 
-// 地圖上的可拾取血袋
 let bloodPacks = [];
 let bloodPackSpawnTimer = 0;
 
@@ -509,15 +517,16 @@ let slapHandsDist = 1.0;
 let deathAnimTimer = 0;
 let soulY = 0;
 
-// 對話流程管理
+// 對話流程狀態控制
 let isPausedForDialog = true;
 let dialogStep = 1;
 const dialogModal = document.getElementById("dialog-modal");
 const dialogTitle = document.getElementById("dialog-title");
 const dialogContent = document.getElementById("dialog-content");
-const dialogBtn = document.getElementById("dialog-btn");
+const dialogBtn1 = document.getElementById("dialog-btn-1");
+const dialogBtn2 = document.getElementById("dialog-btn-2");
 
-dialogBtn.addEventListener("click", () => {
+dialogBtn1.addEventListener("click", () => {
     if (dialogStep === 1) {
         dialogStep = 2;
         dialogTitle.innerText = "重要警告";
@@ -530,9 +539,33 @@ dialogBtn.addEventListener("click", () => {
         dialogStep = 4;
         dialogModal.style.display = "none";
         isPausedForDialog = false;
-    } else if (dialogStep === "UNLOCK_BLINK") {
+    } else if (dialogStep === "UNLOCK_BLINK" || dialogStep === "ALERT_10") {
         dialogModal.style.display = "none";
         isPausedForDialog = false;
+    } else if (dialogStep === "WIN_CHOICE") {
+        // 選擇「要」
+        dialogStep = "FINAL_RESPONSE";
+        dialogTitle.innerText = "🎉 戰鬥意志燃燒！";
+        dialogContent.innerText = "來吧，一起幫力維吸出來！";
+        dialogBtn1.innerText = "再戰一次";
+        dialogBtn2.style.display = "inline-block";
+        dialogBtn2.innerText = "回首頁";
+    } else if (dialogStep === "FINAL_RESPONSE") {
+        resetGame();
+    }
+});
+
+dialogBtn2.addEventListener("click", () => {
+    if (dialogStep === "WIN_CHOICE") {
+        // 選擇「不要」
+        dialogStep = "FINAL_RESPONSE";
+        dialogTitle.innerText = "😏 無法拒絕！";
+        dialogContent.innerText = "不要就是要，來吧，一起幫力維吸出來！";
+        dialogBtn1.innerText = "再戰一次";
+        dialogBtn2.style.display = "inline-block";
+        dialogBtn2.innerText = "回首頁";
+    } else if (dialogStep === "FINAL_RESPONSE") {
+        window.location.href = "index.html";
     }
 });
 
@@ -541,6 +574,30 @@ function showUnlockBlinkDialog() {
     dialogStep = "UNLOCK_BLINK";
     dialogTitle.innerText = "🎉 領悟新忍術！";
     dialogContent.innerText = "恭喜壽星精華液達到 10%！\n你已學會【瞬移⚡】忍術！推動左搖桿並按下瞬移，可高速穿透閃避危險與掌風！";
+    dialogBtn1.innerText = "確定";
+    dialogBtn2.style.display = "none";
+    dialogModal.style.display = "flex";
+}
+
+function showAlert10Dialog() {
+    isPausedForDialog = true;
+    dialogStep = "ALERT_10";
+    dialogTitle.innerText = "⚠️ 警報注意！";
+    dialogContent.innerText = "吸血時，暴露值會提高，將面臨攻擊！";
+    dialogBtn1.innerText = "知道了";
+    dialogBtn2.style.display = "none";
+    dialogModal.style.display = "flex";
+}
+
+function showWinDialog() {
+    isPausedForDialog = true;
+    isStageComplete = true;
+    dialogStep = "WIN_CHOICE";
+    dialogTitle.innerText = "🏆 任務達成！";
+    dialogContent.innerText = "第一階段任務完成，你開始懂得如何吸了，接下來要不要把壽星完全吸乾？";
+    dialogBtn1.innerText = "要";
+    dialogBtn2.innerText = "不要";
+    dialogBtn2.style.display = "inline-block";
     dialogModal.style.display = "flex";
 }
 
@@ -561,6 +618,8 @@ function resetGame() {
     isSucking = false;
     blinkCooldown = 0;
     hasLearnedBlink = false;
+    hasPromptedAlert10 = false;
+    isStageComplete = false;
     updateBlinkBtnUI();
     qteActive = false;
     qteTimer = 0;
@@ -580,11 +639,12 @@ function resetGame() {
     document.getElementById("dodge-popup").style.display = "none";
     document.getElementById("game-over-screen").style.display = "none";
 
-    // 重新開啟引導
     isPausedForDialog = true;
     dialogStep = 1;
     dialogTitle.innerText = "任務指引";
     dialogContent.innerText = "任務內容: 幫力維吸出來，請將壽星精華液吸滿";
+    dialogBtn1.innerText = "確定";
+    dialogBtn2.style.display = "none";
     dialogModal.style.display = "flex";
 }
 
@@ -610,10 +670,11 @@ function updateBlinkBtnUI() {
     }
 }
 
+// 精準熱區配置
 function getCharacterAreas() {
     return [
         { category: "BIRTHDAY_BOY", name: "壽星臉部", x: 385, y: 30, w: 130, h: 160 },
-        { category: "BIRTHDAY_BOY", name: "壽星雙手手臂", x: 340, y: 185, w: 235, h: 105 },
+        { category: "BIRTHDAY_BOY", name: "壽星雙手手臂", x: 340, y: 175, w: 235, h: 210 },
         { category: "BIRTHDAY_BOY", name: "壽星左腿與拖鞋", x: 355, y: 540, w: 95, h: 235 },
         { category: "BIRTHDAY_BOY", name: "壽星右腿與拖鞋", x: 450, y: 540, w: 110, h: 235 },
         { category: "FAT_MAN", name: "胖子臉部", x: 250, y: 35, w: 105, h: 140 },
@@ -874,14 +935,18 @@ function spawnHazard() {
     }
 }
 
-// 產生血袋道具
 function spawnBloodPack() {
+    const speed = 70;
+    const angle = Math.random() * Math.PI * 2;
     bloodPacks.push({
-        x: Math.random() * (worldWidth - 100) + 50,
-        y: Math.random() * (worldHeight - 150) + 80,
+        x: Math.random() * (worldWidth - 140) + 70,
+        y: Math.random() * (worldHeight - 200) + 100,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
         w: 26,
         h: 26,
-        life: 14.0 // 存活 14 秒
+        life: 16.0,
+        floatPhase: Math.random() * 10
     });
 }
 
@@ -938,7 +1003,6 @@ function gameLoop(now) {
         mosquito.frameTimer = 0;
     }
 
-    // 雜物與血袋刷新
     hazardSpawnTimer += dt;
     if (hazardSpawnTimer > 2.5) {
         spawnHazard();
@@ -946,18 +1010,26 @@ function gameLoop(now) {
     }
 
     bloodPackSpawnTimer += dt;
-    if (bloodPackSpawnTimer > 6.5) { // 每 6.5 秒生成一個回血血袋
+    if (bloodPackSpawnTimer > 6.0) {
         if (bloodPacks.length < 3) spawnBloodPack();
         bloodPackSpawnTimer = 0;
     }
 
-    // 碰撞血袋檢測
     for (let i = bloodPacks.length - 1; i >= 0; i--) {
         let bp = bloodPacks[i];
         bp.life -= dt;
+        bp.floatPhase += dt * 4;
+
+        bp.x += bp.vx * dt;
+        bp.y += (bp.vy + Math.sin(bp.floatPhase) * 20) * dt;
+
+        if (bp.x < 30) { bp.x = 30; bp.vx = Math.abs(bp.vx); }
+        if (bp.x > worldWidth - 30) { bp.x = worldWidth - 30; bp.vx = -Math.abs(bp.vx); }
+        if (bp.y < 30) { bp.y = 30; bp.vy = Math.abs(bp.vy); }
+        if (bp.y > worldHeight - 30) { bp.y = worldHeight - 30; bp.vy = -Math.abs(bp.vy); }
+
         const dist = Math.hypot(mosquito.x - bp.x, mosquito.y - bp.y);
-        if (dist < 26) {
-            // 吃掉血袋：回補 35 點生命值！
+        if (dist < 28) {
             health = Math.min(100, health + 35);
             for (let k = 0; k < 12; k++) {
                 bloodParticles.push({
@@ -1031,7 +1103,7 @@ function gameLoop(now) {
         alertVal = Math.max(0, alertVal - 10 * dt);
     }
 
-    // 掌風機制 (有瞬移提醒)
+    // 暴露值 40% 觸發掌風
     if (alertVal >= 40) {
         windWaveTimer += dt;
         if (windWaveTimer > 2.45 && !windWaveActive) {
@@ -1070,6 +1142,7 @@ function gameLoop(now) {
     let muscleTight = alertVal >= 70;
     if (muscleTight) screenShakeTimer += dt * 15;
 
+    // 暴露值 100% 觸發巨掌合圍 QTE
     if (alertVal >= 100 && !qteActive) {
         qteActive = true;
         qteTimer = 0.85;
@@ -1094,20 +1167,38 @@ function gameLoop(now) {
             statusText.style.color = "#bbb";
         } else if (currentTarget.category === "BIRTHDAY_BOY") {
             let rateMod = muscleTight ? 0.5 : 1.0;
-            // 加快壽星精華液提升速度！臉部 22/s, 手臂 15/s, 腿部 10/s
             let gain = (currentTarget.name.includes("臉") ? 22 : (currentTarget.name.includes("手") ? 15 : 10)) * rateMod;
             let alertSpd = currentTarget.name.includes("臉") ? 45 : (currentTarget.name.includes("手") ? 32 : 20);
             
             let prevEssence = essence;
+            let prevAlert = alertVal;
+
             essence = Math.min(100, essence + gain * dt);
             alertVal = Math.min(100, alertVal + alertSpd * dt);
             health = Math.min(100, health + 14 * dt);
             
-            // 達到 10% 解鎖瞬移
+            // 暴露值首次達 10% 彈窗提示
+            if (prevAlert < 10 && alertVal >= 10 && !hasPromptedAlert10) {
+                hasPromptedAlert10 = true;
+                stopSuck();
+                showAlert10Dialog();
+                return;
+            }
+
+            // 壽星精華液達 10% 解鎖瞬移
             if (prevEssence < 10 && essence >= 10 && !hasLearnedBlink) {
                 hasLearnedBlink = true;
                 updateBlinkBtnUI();
+                stopSuck();
                 showUnlockBlinkDialog();
+                return;
+            }
+
+            // 壽星精華液吸滿 100% 過關勝利！
+            if (essence >= 100 && !isStageComplete) {
+                stopSuck();
+                showWinDialog();
+                return;
             }
 
             statusText.innerText = `🩸 汲取【${currentTarget.name}】精華液中！`;
@@ -1117,12 +1208,21 @@ function gameLoop(now) {
         } else if (currentTarget.category === "FAT_MAN") {
             health = Math.max(0, health - 40 * dt);
             alertVal = 100;
-            statusText.innerText = "🌀 嘔！吸到胖子油膩毒血！警覺爆表！";
+            statusText.innerText = "🌀 嘔！吸到胖子油膩毒血！暴露值爆表！";
             statusText.style.color = "#00e676";
             if (health <= 0) triggerDeath("POISONED");
         } else if (currentTarget.category === "OTHER_FRIEND") {
+            let prevAlert = alertVal;
             alertVal = Math.min(100, alertVal + 26 * dt);
             health = Math.min(100, health + 10 * dt);
+
+            if (prevAlert < 10 && alertVal >= 10 && !hasPromptedAlert10) {
+                hasPromptedAlert10 = true;
+                stopSuck();
+                showAlert10Dialog();
+                return;
+            }
+
             statusText.innerText = `🩸 正在叮咬【${currentTarget.name}】(回血有效，精華無效)`;
             statusText.style.color = "#ff9100";
             if (Math.random() < 0.6) _spawnBlood(mosquito.facingRight ? 11 : -11, 16, true);
@@ -1229,27 +1329,34 @@ function render(currentTarget, timestamp) {
         }
     }
 
-    // 繪製地圖上的血袋道具
+    // 繪製飛行血包
     for (let bp of bloodPacks) {
         ctx.save();
+        ctx.translate(bp.x, bp.y);
+
+        const wingFlap = Math.sin(bp.floatPhase * 2.5) * 6;
+        ctx.fillStyle = "rgba(255, 255, 255, 0.6)";
+        ctx.beginPath();
+        ctx.ellipse(-14, wingFlap, 9, 4, -0.3, 0, Math.PI * 2);
+        ctx.ellipse(14, wingFlap, 9, 4, 0.3, 0, Math.PI * 2);
+        ctx.fill();
+
         ctx.fillStyle = "#d50000";
         ctx.strokeStyle = "#fff";
         ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.roundRect(bp.x - bp.w / 2, bp.y - bp.h / 2, bp.w, bp.h, 6);
+        ctx.roundRect(-bp.w / 2, -bp.h / 2, bp.w, bp.h, 6);
         ctx.fill();
         ctx.stroke();
 
-        // 白十字符號
         ctx.fillStyle = "#fff";
-        ctx.fillRect(bp.x - 3, bp.y - 8, 6, 16);
-        ctx.fillRect(bp.x - 8, bp.y - 3, 16, 6);
+        ctx.fillRect(-3, -8, 6, 16);
+        ctx.fillRect(-8, -3, 16, 6);
 
-        // 文字標記
         ctx.font = "bold 10px sans-serif";
         ctx.fillStyle = "#76ff03";
         ctx.textAlign = "center";
-        ctx.fillText("+35 HP", bp.x, bp.y - 16);
+        ctx.fillText("+35 HP", 0, -18);
         ctx.restore();
     }
 
