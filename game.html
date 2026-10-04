@@ -43,8 +43,8 @@
             position: absolute;
             top: max(15px, env(safe-area-inset-top, 15px));
             left: max(15px, env(safe-area-inset-left, 15px));
-            width: 280px;
-            max-width: 65vw;
+            width: 300px;
+            max-width: 70vw;
             color: #fff;
             text-shadow: 2px 2px 4px #000;
             pointer-events: none;
@@ -91,7 +91,7 @@
             transition: width 0.08s linear;
         }
 
-        /* 劇情/教學/勝利對話框：加入最大可視高度避免被壓縮 */
+        /* 劇情/教學/勝利對話框 */
         #dialog-modal {
             position: absolute;
             top: 50%;
@@ -227,7 +227,7 @@
             pointer-events: none;
         }
 
-        /* 技能面板：智慧動態避讓 Safari 工具列、iPhone Home 條與 Android 導航鍵 */
+        /* 技能面板：智慧動態避讓各手機工具列與指示條 */
         #arena-action-pad {
             position: absolute;
             right: max(15px, env(safe-area-inset-right, 15px));
@@ -389,7 +389,7 @@
         <div id="arena-knob"></div>
     </div>
 
-    <div id="qte-overlay">⚠️️ 巨掌合圍！按【瞬移⚡】閃避！</div>
+    <div id="qte-overlay">⚠️ 巨掌合圍！按【瞬移⚡】閃避！</div>
     <div id="dodge-popup">⚡ DODGE! 完美閃避！</div>
 
     <div id="hud">
@@ -511,6 +511,7 @@ let windWaveActive = false;
 let windWaveX = -200;
 let windWaveWarning = false;
 let windWaveWarningTimer = 0;
+const WIND_WARNING_DURATION = 1.8; // 預警時間拉長為充裕的 1.8 秒
 let screenShakeTimer = 0;
 let hurtFlashTimer = 0;
 let qteActive = false;
@@ -631,6 +632,7 @@ function resetGame() {
     windWaveActive = false;
     windWaveWarning = false;
     windWaveWarningTimer = 0;
+    windWaveTimer = 0;
     hazards = [];
     bloodPacks = [];
     bloodPackSpawnTimer = 0;
@@ -1098,22 +1100,27 @@ function gameLoop(now) {
         alertVal = Math.max(0, alertVal - 10 * dt);
     }
 
+    // 掌風觸發與倒數機制邏輯：保證完整 1.8 秒預警期
     if (alertVal >= 40) {
         windWaveTimer += dt;
-        if (windWaveTimer >= 2.0 && !windWaveActive) {
+        if (windWaveTimer >= 1.2 && !windWaveActive) {
             windWaveWarning = true;
-            windWaveWarningTimer = 3.2 - windWaveTimer;
+            windWaveWarningTimer = Math.max(0, (1.2 + WIND_WARNING_DURATION) - windWaveTimer);
         }
-        if (windWaveTimer >= 3.2) {
+        if (windWaveTimer >= (1.2 + WIND_WARNING_DURATION)) {
             windWaveActive = true;
             windWaveWarning = false;
+            windWaveWarningTimer = 0;
             windWaveX = mosquito.x - 340;
             windWaveTimer = 0;
         }
     } else {
-        windWaveTimer = 0;
-        windWaveActive = false;
-        windWaveWarning = false;
+        // 暴露值下降時平滑遞減或重置，確保預警不瞬間卡死
+        if (!windWaveActive) {
+            windWaveTimer = 0;
+            windWaveWarning = false;
+            windWaveWarningTimer = 0;
+        }
     }
 
     if (windWaveActive) {
@@ -1216,7 +1223,10 @@ function gameLoop(now) {
     } else {
         if (!qteActive && hurtFlashTimer <= 0) {
             if (windWaveWarning) {
-                statusText.innerText = hasLearnedBlink ? "⚠️ 掌風襲來預警！準備按【瞬移⚡】閃避！" : "⚠️ 掌風襲來預警！小心被重創！";
+                // 頂部狀態列動態刷新倒數秒數，保證絕不遺漏
+                statusText.innerText = hasLearnedBlink
+                    ? `⚠️ 掌風倒數 (${windWaveWarningTimer.toFixed(1)}s)！按【瞬移⚡】閃避！`
+                    : `⚠️ 掌風倒數 (${windWaveWarningTimer.toFixed(1)}s)！小心被重創！`;
                 statusText.style.color = "#ff1744";
             } else if (currentTarget) {
                 if (currentTarget.category === "BIRTHDAY_BOY") {
@@ -1377,6 +1387,7 @@ function render(currentTarget, timestamp) {
         ctx.restore();
     }
 
+    // 掌風警示渲染：加入相機邊界保護，確保文字絕不超出螢幕
     if (windWaveWarning) {
         ctx.save();
         const curTime = timestamp || performance.now();
@@ -1393,14 +1404,38 @@ function render(currentTarget, timestamp) {
         ctx.lineTo(mosquito.x - 30, worldHeight);
         ctx.stroke();
         ctx.setLineDash([]);
-        ctx.font = "bold 14px sans-serif";
+
+        // 計算目前攝影機可見的世界座標範圍
+        const viewLeft = camera.x;
+        const viewRight = camera.x + canvas.width / camera.zoom;
+
+        const warnText = `⚠️ 掌風襲來 (${windWaveWarningTimer.toFixed(1)}s)`;
+        ctx.font = "bold 12px sans-serif";
+        const textWidth = ctx.measureText(warnText).width;
+        const pillW = textWidth + 18;
+        const pillH = 22;
+
+        // 將警告標籤的 X 限制在可見畫面內（左右各留 8px 安全距離）
+        let pillX = mosquito.x;
+        const halfW = pillW / 2;
+        if (pillX - halfW < viewLeft + 8) pillX = viewLeft + 8 + halfW;
+        if (pillX + halfW > viewRight - 8) pillX = viewRight - 8 - halfW;
+        const pillY = mosquito.y - 32;
+
+        // 繪製高對比防切黑紅膠囊底框
+        ctx.fillStyle = "rgba(0, 0, 0, 0.85)";
+        ctx.strokeStyle = "#ff1744";
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.roundRect(pillX - halfW, pillY - 14, pillW, pillH, 8);
+        ctx.fill();
+        ctx.stroke();
+
         ctx.textAlign = "center";
-        ctx.lineWidth = 4;
-        ctx.strokeStyle = "rgba(0, 0, 0, 0.9)";
-        const warnText = hasLearnedBlink ? `⚠️ 掌風襲來 (${windWaveWarningTimer.toFixed(1)}s)！按【瞬移⚡】閃避！` : `⚠️ 掌風襲來 (${windWaveWarningTimer.toFixed(1)}s)！快閃開！`;
-        ctx.strokeText(warnText, mosquito.x, mosquito.y - 36);
-        ctx.fillStyle = "#ff1744";
-        ctx.fillText(warnText, mosquito.x, mosquito.y - 36);
+        ctx.textBaseline = "middle";
+        ctx.fillStyle = "#ffeb3b";
+        ctx.fillText(warnText, pillX, pillY - 3);
+
         ctx.restore();
     }
 

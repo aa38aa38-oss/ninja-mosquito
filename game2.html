@@ -32,8 +32,8 @@
             position: absolute;
             top: max(15px, env(safe-area-inset-top, 15px));
             left: max(15px, env(safe-area-inset-left, 15px));
-            width: 280px;
-            max-width: 65vw;
+            width: 290px;
+            max-width: 68vw;
             color: #fff;
             text-shadow: 2px 2px 4px #000;
             pointer-events: none;
@@ -158,7 +158,7 @@
         <div id="arena-knob"></div>
     </div>
 
-    <div id="qte-overlay">⚠ 巨掌合圍！按【瞬移⚡】閃避！</div>
+    <div id="qte-overlay">⚠️ 巨掌合圍！按【瞬移⚡】閃避！</div>
     <div id="dodge-popup">⚡ DODGE! 完美閃避！</div>
 
     <div id="hud">
@@ -329,6 +329,7 @@ let windWaveActive = false;
 let windWaveX = -200;
 let windWaveWarning = false;
 let windWaveWarningTimer = 0;
+const WIND_WARNING_DURATION = 1.8; // 完整 1.8 秒預警
 let screenShakeTimer = 0;
 let hurtFlashTimer = 0;
 let essenceDrainFlashTimer = 0;
@@ -391,7 +392,7 @@ function resetGame() {
     updateSkillsUI();
     qteActive = false; qteTimer = 0; slapHandsDist = 1.0; deathAnimTimer = 0; soulY = 0;
     hurtFlashTimer = 0; essenceDrainFlashTimer = 0;
-    windWaveActive = false; windWaveWarning = false; windWaveWarningTimer = 0;
+    windWaveActive = false; windWaveWarning = false; windWaveWarningTimer = 0; windWaveTimer = 0;
     hazards = []; bloodPacks = []; bloodPackSpawnTimer = 0; hazardSpawnTimer = 0;
     frogs = []; frogSpawnTimer = 0;
     birds = []; birdSpawnTimer = 0;
@@ -599,7 +600,9 @@ function spawnFrog() {
         w: 80,
         h: 68,
         targetX: mosquito.x,
-        targetY: mosquito.y
+        targetY: mosquito.y,
+        actualTipX: fx + 40,
+        actualTipY: fy + 25
     });
 }
 
@@ -610,7 +613,8 @@ function spawnBird() {
     const targetX = mosquito.x;
     const targetY = mosquito.y;
     const moveAngle = Math.atan2(targetY - startY, targetX - startX);
-    const speed = 440;
+    // 麻雀飛行速度放緩至 250 (原為 440)
+    const speed = 250;
 
     birds.push({
         x: startX,
@@ -622,10 +626,10 @@ function spawnBird() {
         frame: 0,
         w: 78,
         h: 70,
-        warnTimer: 1.1,
+        warnTimer: 1.2,
         destX: targetX,
         destY: targetY,
-        life: 2.2
+        life: 3.2
     });
 }
 
@@ -691,14 +695,29 @@ function updateGame(dt, now) {
     for (let i = frogs.length - 1; i >= 0; i--) {
         let f = frogs[i];
         f.timer -= dt;
+        const originX = f.x + 40;
+        const originY = f.y + 25;
+        const maxTongueReach = 80; // 舌頭長度限制在蛙身周遭 80px 內
+
         if (f.state === "AIM") {
             f.targetX = mosquito.x;
             f.targetY = mosquito.y;
+            let dx = f.targetX - originX;
+            let dy = f.targetY - originY;
+            let dist = Math.hypot(dx, dy);
+            if (dist > maxTongueReach && dist > 0) {
+                f.actualTipX = originX + (dx / dist) * maxTongueReach;
+                f.actualTipY = originY + (dy / dist) * maxTongueReach;
+            } else {
+                f.actualTipX = f.targetX;
+                f.actualTipY = f.targetY;
+            }
             if (f.timer <= 0) { f.state = "STRIKE"; f.timer = 0.5; }
         } else if (f.state === "STRIKE") {
             if (mosquito.invincibleTimer <= 0) {
-                const distToTongue = Math.hypot(mosquito.x - f.targetX, mosquito.y - f.targetY);
-                if (distToTongue < 20) {
+                // 以縮短後的舌尖位置進行命中判定
+                const distToTongue = Math.hypot(mosquito.x - f.actualTipX, mosquito.y - f.actualTipY);
+                if (distToTongue < 25) {
                     essence = Math.max(0, essence - 25);
                     essenceDrainFlashTimer = 0.3;
                     showDodgeEffect("🩸 精華液被青蛙舔掉啦！-25%");
@@ -764,11 +783,27 @@ function updateGame(dt, now) {
     if (!isSucking) { health = Math.max(0, health - 3.5 * dt); if (health <= 0) triggerDeath("STARVED"); }
     if (!isSucking && !qteActive) alertVal = Math.max(0, alertVal - 8 * dt);
 
+    // 掌風觸發與倒數機制：保證完整 1.8 秒預警期
     if (alertVal >= 40) {
         windWaveTimer += dt;
-        if (windWaveTimer >= 1.8 && !windWaveActive) { windWaveWarning = true; windWaveWarningTimer = 3.0 - windWaveTimer; }
-        if (windWaveTimer >= 3.0) { windWaveActive = true; windWaveWarning = false; windWaveX = mosquito.x - 340; windWaveTimer = 0; }
-    } else { windWaveTimer = 0; windWaveActive = false; windWaveWarning = false; }
+        if (windWaveTimer >= 1.2 && !windWaveActive) {
+            windWaveWarning = true;
+            windWaveWarningTimer = Math.max(0, (1.2 + WIND_WARNING_DURATION) - windWaveTimer);
+        }
+        if (windWaveTimer >= (1.2 + WIND_WARNING_DURATION)) {
+            windWaveActive = true;
+            windWaveWarning = false;
+            windWaveWarningTimer = 0;
+            windWaveX = mosquito.x - 340;
+            windWaveTimer = 0;
+        }
+    } else {
+        if (!windWaveActive) {
+            windWaveTimer = 0;
+            windWaveWarning = false;
+            windWaveWarningTimer = 0;
+        }
+    }
 
     if (windWaveActive) {
         windWaveX += 780 * dt;
@@ -817,7 +852,7 @@ function updateGame(dt, now) {
                 showAllCompleteDialog();
             }
 
-            statusText.innerText = isFrenzyActive ? `🌪️️ 【影分身狂吸中】匿蹤吸取壽星精華液中！` : `🩸 汲取【${currentTarget.name}】精華液中！`;
+            statusText.innerText = isFrenzyActive ? `🌪️ 【影分身狂吸中】匿蹤吸取壽星精華液中！` : `🩸 汲取【${currentTarget.name}】精華液中！`;
             statusText.style.color = "#ff1744";
 
             if (Math.random() < 0.6) _spawnBlood(mosquito.facingRight ? 11 : -11, 16, true);
@@ -832,8 +867,11 @@ function updateGame(dt, now) {
         }
     } else {
         if (!qteActive && hurtFlashTimer <= 0) {
-            if (windWaveWarning) { statusText.innerText = `⚠️ 掌風襲來預警！準備按【瞬移】或【隱身】閃避！`; statusText.style.color = "#ff1744"; }
-            else if (currentTarget) {
+            if (windWaveWarning) {
+                // 頂部狀態列動態刷新倒數秒數
+                statusText.innerText = `⚠️️ 掌風倒數 (${windWaveWarningTimer.toFixed(1)}s)！準備按【瞬移】或【隱身】！`;
+                statusText.style.color = "#ff1744";
+            } else if (currentTarget) {
                 if (currentTarget.category === "BIRTHDAY_BOY") { statusText.innerText = `🟢 鎖定壽星部位：${currentTarget.name} (按住吸血)`; statusText.style.color = "#76ff03"; }
                 else if (currentTarget.category === "FAT_MAN") { statusText.innerText = `⚠️ 這是大胖子！有劇毒千萬別吸！`; statusText.style.color = "#ff5252"; }
                 else { statusText.innerText = `⚪ 發現中間朋友：${currentTarget.name} (可補血)`; statusText.style.color = "#fff"; }
@@ -882,27 +920,27 @@ function render(currentTarget, timestamp) {
             ctx.lineWidth = 2.0;
             ctx.setLineDash([5, 5]);
             ctx.beginPath();
-            ctx.arc(f.targetX, f.targetY, 15 + Math.sin(performance.now() / 80) * 3, 0, Math.PI * 2);
+            ctx.arc(f.actualTipX, f.actualTipY, 14 + Math.sin(performance.now() / 80) * 3, 0, Math.PI * 2);
             ctx.stroke();
 
             ctx.beginPath();
-            ctx.moveTo(f.targetX - 20, f.targetY); ctx.lineTo(f.targetX + 20, f.targetY);
-            ctx.moveTo(f.targetX, f.targetY - 20); ctx.lineTo(f.targetX + 20, f.targetY + 20);
+            ctx.moveTo(f.actualTipX - 16, f.actualTipY); ctx.lineTo(f.actualTipX + 16, f.actualTipY);
+            ctx.moveTo(f.actualTipX, f.actualTipY - 16); ctx.lineTo(f.actualTipX, f.actualTipY + 16);
             ctx.stroke();
         }
 
         if (f.state === "STRIKE") {
             drawSafe(assets.frog2, f.x, f.y, f.w + 20, f.h);
 
-            const midX = (f.x + 40 + f.targetX) / 2 + Math.sin(f.timer * 30) * 14;
-            const midY = (f.y + 25 + f.targetY) / 2 + Math.cos(f.timer * 30) * 14;
+            const midX = (f.x + 40 + f.actualTipX) / 2 + Math.sin(f.timer * 30) * 10;
+            const midY = (f.y + 25 + f.actualTipY) / 2 + Math.cos(f.timer * 30) * 10;
 
             ctx.strokeStyle = "#ff1744";
             ctx.lineWidth = 6;
             ctx.lineCap = "round";
             ctx.beginPath();
             ctx.moveTo(f.x + 40, f.y + 25);
-            ctx.quadraticCurveTo(midX, midY, f.targetX, f.targetY);
+            ctx.quadraticCurveTo(midX, midY, f.actualTipX, f.actualTipY);
             ctx.stroke();
 
             ctx.strokeStyle = "#ff8a80";
@@ -911,7 +949,7 @@ function render(currentTarget, timestamp) {
 
             ctx.fillStyle = "#76ff03";
             ctx.beginPath();
-            ctx.arc(f.targetX, f.targetY, 5, 0, Math.PI * 2);
+            ctx.arc(f.actualTipX, f.actualTipY, 5, 0, Math.PI * 2);
             ctx.fill();
         } else {
             drawSafe(assets.frog1, f.x, f.y, f.w, f.h);
@@ -932,7 +970,7 @@ function render(currentTarget, timestamp) {
 
             ctx.font = "bold 13px sans-serif";
             ctx.fillStyle = "#ff3d00";
-            ctx.fillText("🌪️ 麻雀俯衝！", b.x - 30, b.y - 12);
+            ctx.fillText("🌪️️ 麻雀俯衝！", b.x - 30, b.y - 12);
         } else {
             ctx.strokeStyle = "rgba(255, 255, 255, 0.4)";
             ctx.lineWidth = 4;
@@ -986,13 +1024,42 @@ function render(currentTarget, timestamp) {
         ctx.restore();
     }
 
+    // 掌風警示渲染：加入相機邊界保護，確保文字絕不超出螢幕
     if (windWaveWarning) {
         ctx.save(); const curTime = timestamp || performance.now(); const pulseAlpha = 0.25 + Math.sin(curTime / 100) * 0.15;
         ctx.fillStyle = `rgba(255, 23, 68, ${pulseAlpha})`; ctx.fillRect(mosquito.x - 120, 0, 90, worldHeight);
         ctx.strokeStyle = "rgba(255, 23, 68, 0.9)"; ctx.lineWidth = 3; ctx.setLineDash([8, 6]); ctx.beginPath(); ctx.moveTo(mosquito.x - 120, 0); ctx.lineTo(mosquito.x - 120, worldHeight); ctx.moveTo(mosquito.x - 30, 0); ctx.lineTo(mosquito.x - 30, worldHeight); ctx.stroke();
-        ctx.setLineDash([]); ctx.font = "bold 14px sans-serif"; ctx.textAlign = "center"; ctx.lineWidth = 4; ctx.strokeStyle = "rgba(0, 0, 0, 0.9)";
-        ctx.strokeText(`⚠️ 掌風襲來 (${windWaveWarningTimer.toFixed(1)}s)！按【瞬移】或【隱身】！`, mosquito.x, mosquito.y - 36);
-        ctx.fillStyle = "#ff1744"; ctx.fillText(`⚠️ 掌風襲來 (${windWaveWarningTimer.toFixed(1)}s)！按【瞬移】或【隱身】！`, mosquito.x, mosquito.y - 36);
+        ctx.setLineDash([]);
+
+        // 計算攝影機可見視野
+        const viewLeft = camera.x;
+        const viewRight = camera.x + canvas.width / camera.zoom;
+
+        const warnText = `⚠️ 掌風襲來 (${windWaveWarningTimer.toFixed(1)}s)`;
+        ctx.font = "bold 12px sans-serif";
+        const textWidth = ctx.measureText(warnText).width;
+        const pillW = textWidth + 18;
+        const pillH = 22;
+
+        let pillX = mosquito.x;
+        const halfW = pillW / 2;
+        if (pillX - halfW < viewLeft + 8) pillX = viewLeft + 8 + halfW;
+        if (pillX + halfW > viewRight - 8) pillX = viewRight - 8 - halfW;
+        const pillY = mosquito.y - 32;
+
+        ctx.fillStyle = "rgba(0, 0, 0, 0.85)";
+        ctx.strokeStyle = "#ff1744";
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.roundRect(pillX - halfW, pillY - 14, pillW, pillH, 8);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillStyle = "#ffeb3b";
+        ctx.fillText(warnText, pillX, pillY - 3);
+
         ctx.restore();
     }
 
