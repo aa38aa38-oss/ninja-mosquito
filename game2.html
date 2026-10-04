@@ -137,6 +137,8 @@
 </head>
 <body>
 
+<audio id="bgm" src="music.mp3" loop preload="auto"></audio>
+
 <div id="game-container">
     <canvas id="gameCanvas"></canvas>
 
@@ -219,6 +221,20 @@ window.addEventListener("orientationchange", () => {
     setTimeout(resize, 100);
 });
 resize();
+
+const bgm = document.getElementById("bgm");
+
+function playBGM() {
+    if (bgm && bgm.paused) {
+        bgm.volume = 0.6;
+        bgm.play().catch(() => {});
+    }
+}
+
+// 頁面載入時嘗試直接播放；若遭瀏覽器限制，則在第一次點擊或觸控任何區域時立刻解鎖
+window.addEventListener("DOMContentLoaded", playBGM);
+window.addEventListener("click", playBGM, { once: true });
+window.addEventListener("touchstart", playBGM, { once: true });
 
 const assets = {
     bg: new Image(),
@@ -329,7 +345,7 @@ let windWaveActive = false;
 let windWaveX = -200;
 let windWaveWarning = false;
 let windWaveWarningTimer = 0;
-const WIND_WARNING_DURATION = 1.8; // 完整 1.8 秒預警
+const WIND_WARNING_DURATION = 1.8;
 let screenShakeTimer = 0;
 let hurtFlashTimer = 0;
 let essenceDrainFlashTimer = 0;
@@ -348,6 +364,7 @@ const dialogBtn1 = document.getElementById("dialog-btn-1");
 
 function handleBtn1Click(e) {
     if (e) { e.preventDefault(); e.stopPropagation(); }
+    playBGM();
     if (dialogStep === 1) {
         dialogModal.style.display = "none";
         isPausedForDialog = false;
@@ -400,6 +417,10 @@ function resetGame() {
     document.getElementById("qte-overlay").style.display = "none";
     document.getElementById("dodge-popup").style.display = "none";
     document.getElementById("game-over-screen").style.display = "none";
+
+    // 重新挑戰時維持音樂無縫連續播放，不重設時間也不中斷
+    playBGM();
+
     isPausedForDialog = true; dialogStep = 1;
     dialogTitle.innerText = "最終任務指引";
     dialogContent.innerText = "最終任務：徹底把壽星吸乾！\n右側米色衣服為壽星，左側胖子有劇毒！\n\n新威脅注意：\n青蛙、麻雀攻擊會【大幅消耗壽星精華液】！\n善用【瞬移⚡】與【隱身術👻】保護精華！";
@@ -457,6 +478,7 @@ let joyOrigin = { x: 0, y: 0 };
 let currentTouchId = null;
 
 function onJoyStart(clientX, clientY, touchId = null) {
+    playBGM();
     if (mosquito.isDead || isPausedForDialog) return;
     joyActive = true; currentTouchId = touchId; joyOrigin = { x: clientX, y: clientY };
     arenaJoy.style.left = clientX + "px"; arenaJoy.style.top = clientY + "px"; arenaJoy.style.display = "block";
@@ -484,7 +506,12 @@ const blinkBtn = document.getElementById("blink-btn");
 const stealthBtn = document.getElementById("stealth-btn");
 const frenzyBtn = document.getElementById("frenzy-btn");
 
-function startSuck() { if (mosquito.isDead || isPausedForDialog) return; isSucking = true; suckBtn.classList.add("pressed"); }
+function startSuck() {
+    playBGM();
+    if (mosquito.isDead || isPausedForDialog) return;
+    isSucking = true;
+    suckBtn.classList.add("pressed");
+}
 function stopSuck() {
     if (frenzyActiveTimer > 0) return;
     isSucking = false;
@@ -504,6 +531,7 @@ function showDodgeEffect(txt = "⚡ DODGE! 完美閃避！") {
 
 function triggerBlink(e) {
     if (e && e.preventDefault) e.preventDefault();
+    playBGM();
     if (blinkCooldown <= 0 && !mosquito.isDead && !isPausedForDialog) {
         blinkCooldown = 2.0;
         if (frenzyActiveTimer <= 0) stopSuck();
@@ -525,6 +553,7 @@ blinkBtn.addEventListener("touchstart", triggerBlink, { passive: false });
 
 function triggerStealth(e) {
     if (e && e.preventDefault) e.preventDefault();
+    playBGM();
     if (stealthCooldown <= 0 && stealthActiveTimer <= 0 && !mosquito.isDead && !isPausedForDialog) {
         stealthCooldown = 4.5;
         stealthActiveTimer = 4.0;
@@ -537,6 +566,7 @@ stealthBtn.addEventListener("touchstart", triggerStealth, { passive: false });
 
 function triggerFrenzy(e) {
     if (e && e.preventDefault) e.preventDefault();
+    playBGM();
     if (!hasLearnedFrenzy) return;
     if (frenzyCooldown <= 0 && frenzyActiveTimer <= 0 && !mosquito.isDead && !isPausedForDialog) {
         frenzyCooldown = 11.0;
@@ -573,6 +603,7 @@ function triggerDeath(reason) {
     mosquito.isDead = true; mosquito.deathType = reason;
     frenzyActiveTimer = 0;
     stopSuck();
+    // 死亡時不暫停音樂，保持背景旋律連續流暢
     document.getElementById("qte-overlay").style.display = "none";
     const reasonText = document.getElementById("death-reason");
     if (reason === "STARVED") reasonText.innerText = "長時間未吸血，體力耗盡飢餓墜地身亡...";
@@ -613,7 +644,6 @@ function spawnBird() {
     const targetX = mosquito.x;
     const targetY = mosquito.y;
     const moveAngle = Math.atan2(targetY - startY, targetX - startX);
-    // 麻雀飛行速度放緩至 250 (原為 440)
     const speed = 250;
 
     birds.push({
@@ -697,7 +727,7 @@ function updateGame(dt, now) {
         f.timer -= dt;
         const originX = f.x + 40;
         const originY = f.y + 25;
-        const maxTongueReach = 80; // 舌頭長度限制在蛙身周遭 80px 內
+        const maxTongueReach = 80;
 
         if (f.state === "AIM") {
             f.targetX = mosquito.x;
@@ -715,7 +745,6 @@ function updateGame(dt, now) {
             if (f.timer <= 0) { f.state = "STRIKE"; f.timer = 0.5; }
         } else if (f.state === "STRIKE") {
             if (mosquito.invincibleTimer <= 0) {
-                // 以縮短後的舌尖位置進行命中判定
                 const distToTongue = Math.hypot(mosquito.x - f.actualTipX, mosquito.y - f.actualTipY);
                 if (distToTongue < 25) {
                     essence = Math.max(0, essence - 25);
@@ -783,7 +812,6 @@ function updateGame(dt, now) {
     if (!isSucking) { health = Math.max(0, health - 3.5 * dt); if (health <= 0) triggerDeath("STARVED"); }
     if (!isSucking && !qteActive) alertVal = Math.max(0, alertVal - 8 * dt);
 
-    // 掌風觸發與倒數機制：保證完整 1.8 秒預警期
     if (alertVal >= 40) {
         windWaveTimer += dt;
         if (windWaveTimer >= 1.2 && !windWaveActive) {
@@ -868,8 +896,7 @@ function updateGame(dt, now) {
     } else {
         if (!qteActive && hurtFlashTimer <= 0) {
             if (windWaveWarning) {
-                // 頂部狀態列動態刷新倒數秒數
-                statusText.innerText = `⚠️️ 掌風倒數 (${windWaveWarningTimer.toFixed(1)}s)！準備按【瞬移】或【隱身】！`;
+                statusText.innerText = `⚠️ 掌風倒數 (${windWaveWarningTimer.toFixed(1)}s)！準備按【瞬移】或【隱身】！`;
                 statusText.style.color = "#ff1744";
             } else if (currentTarget) {
                 if (currentTarget.category === "BIRTHDAY_BOY") { statusText.innerText = `🟢 鎖定壽星部位：${currentTarget.name} (按住吸血)`; statusText.style.color = "#76ff03"; }
@@ -925,7 +952,7 @@ function render(currentTarget, timestamp) {
 
             ctx.beginPath();
             ctx.moveTo(f.actualTipX - 16, f.actualTipY); ctx.lineTo(f.actualTipX + 16, f.actualTipY);
-            ctx.moveTo(f.actualTipX, f.actualTipY - 16); ctx.lineTo(f.actualTipX, f.actualTipY + 16);
+            ctx.moveTo(f.actualTipX, f.actualTipY - 16); ctx.lineTo(f.actualTipX + 16, f.actualTipY + 16);
             ctx.stroke();
         }
 
@@ -970,7 +997,7 @@ function render(currentTarget, timestamp) {
 
             ctx.font = "bold 13px sans-serif";
             ctx.fillStyle = "#ff3d00";
-            ctx.fillText("🌪️️ 麻雀俯衝！", b.x - 30, b.y - 12);
+            ctx.fillText("🌪️ 麻雀俯衝！", b.x - 30, b.y - 12);
         } else {
             ctx.strokeStyle = "rgba(255, 255, 255, 0.4)";
             ctx.lineWidth = 4;
@@ -1024,14 +1051,12 @@ function render(currentTarget, timestamp) {
         ctx.restore();
     }
 
-    // 掌風警示渲染：加入相機邊界保護，確保文字絕不超出螢幕
     if (windWaveWarning) {
         ctx.save(); const curTime = timestamp || performance.now(); const pulseAlpha = 0.25 + Math.sin(curTime / 100) * 0.15;
         ctx.fillStyle = `rgba(255, 23, 68, ${pulseAlpha})`; ctx.fillRect(mosquito.x - 120, 0, 90, worldHeight);
         ctx.strokeStyle = "rgba(255, 23, 68, 0.9)"; ctx.lineWidth = 3; ctx.setLineDash([8, 6]); ctx.beginPath(); ctx.moveTo(mosquito.x - 120, 0); ctx.lineTo(mosquito.x - 120, worldHeight); ctx.moveTo(mosquito.x - 30, 0); ctx.lineTo(mosquito.x - 30, worldHeight); ctx.stroke();
         ctx.setLineDash([]);
 
-        // 計算攝影機可見視野
         const viewLeft = camera.x;
         const viewRight = camera.x + canvas.width / camera.zoom;
 

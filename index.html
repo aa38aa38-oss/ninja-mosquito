@@ -34,7 +34,6 @@
             flex-direction: column;
             justify-content: flex-end;
             align-items: center;
-            /* 智慧動態邊距：同時適應 Safari 工具列、iPhone 小黑條及 Android 虛擬鍵 */
             padding-bottom: max(30px, calc(env(safe-area-inset-bottom, 0px) + 20px));
             overflow: hidden;
         }
@@ -141,6 +140,8 @@
 </head>
 <body>
 
+<audio id="bgm" src="music.mp3" loop preload="auto"></audio>
+
 <div id="home-container">
     <img id="cover-img" src="cover.png" alt="封面" onerror="tryNext(this)">
 
@@ -169,15 +170,34 @@ function tryNext(img) {
     }
 }
 
+const bgm = document.getElementById('bgm');
+
+function playBGM() {
+    if (bgm && bgm.paused) {
+        bgm.volume = 0.6;
+        bgm.play().catch(() => {});
+    }
+}
+
+// 載入時嘗試播放；若瀏覽器限制自動播放，則在玩家首次觸控或點擊螢幕任何位置時立即解鎖
+window.addEventListener('DOMContentLoaded', () => {
+    playBGM();
+});
+window.addEventListener('click', playBGM, { once: true });
+window.addEventListener('touchstart', playBGM, { once: true });
+
 function startGame() {
+    playBGM();
     window.location.href = 'game.html';
 }
 
 function openHelp() {
+    playBGM();
     document.getElementById('help-modal').style.display = 'block';
 }
 
 function closeHelp() {
+    playBGM();
     document.getElementById('help-modal').style.display = 'none';
 }
 </script>

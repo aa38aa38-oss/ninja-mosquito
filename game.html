@@ -371,6 +371,8 @@
 </head>
 <body>
 
+<audio id="bgm" src="music.mp3" loop preload="auto"></audio>
+
 <div id="game-container">
     <canvas id="gameCanvas"></canvas>
 
@@ -389,7 +391,7 @@
         <div id="arena-knob"></div>
     </div>
 
-    <div id="qte-overlay">⚠️ 巨掌合圍！按【瞬移⚡】閃避！</div>
+    <div id="qte-overlay">⚠️️ 巨掌合圍！按【瞬移⚡】閃避！</div>
     <div id="dodge-popup">⚡ DODGE! 完美閃避！</div>
 
     <div id="hud">
@@ -452,6 +454,20 @@ window.addEventListener("orientationchange", () => {
 });
 resize();
 
+const bgm = document.getElementById("bgm");
+
+function playBGM() {
+    if (bgm && bgm.paused) {
+        bgm.volume = 0.6;
+        bgm.play().catch(() => {});
+    }
+}
+
+// 頁面載入時嘗試直接播放；若遭瀏覽器限制，則在第一次點擊或觸控任何區域時立刻解鎖
+window.addEventListener("DOMContentLoaded", playBGM);
+window.addEventListener("click", playBGM, { once: true });
+window.addEventListener("touchstart", playBGM, { once: true });
+
 const assets = {
     bg: new Image(),
     fly1: new Image(),
@@ -511,7 +527,7 @@ let windWaveActive = false;
 let windWaveX = -200;
 let windWaveWarning = false;
 let windWaveWarningTimer = 0;
-const WIND_WARNING_DURATION = 1.8; // 預警時間拉長為充裕的 1.8 秒
+const WIND_WARNING_DURATION = 1.8;
 let screenShakeTimer = 0;
 let hurtFlashTimer = 0;
 let qteActive = false;
@@ -530,6 +546,7 @@ const dialogBtn2 = document.getElementById("dialog-btn-2");
 
 function handleBtn1Click(e) {
     if (e && e.preventDefault) e.preventDefault();
+    playBGM();
     if (dialogStep === 1) {
         dialogStep = 2;
         dialogTitle.innerText = "重要警告";
@@ -559,6 +576,7 @@ function handleBtn1Click(e) {
 
 function handleBtn2Click(e) {
     if (e && e.preventDefault) e.preventDefault();
+    playBGM();
     if (dialogStep === "WIN_CHOICE") {
         dialogStep = "FINAL_RESPONSE";
         dialogTitle.innerText = "😏 無法拒絕！";
@@ -643,6 +661,9 @@ function resetGame() {
     document.getElementById("dodge-popup").style.display = "none";
     document.getElementById("game-over-screen").style.display = "none";
 
+    // 重新挑戰時維持音樂無縫連續播放，不重設時間也不中斷
+    playBGM();
+
     isPausedForDialog = true;
     dialogStep = 1;
     dialogTitle.innerText = "任務指引";
@@ -710,6 +731,7 @@ let joyOrigin = { x: 0, y: 0 };
 let currentTouchId = null;
 
 function onJoyStart(clientX, clientY, touchId = null) {
+    playBGM();
     if (mosquito.isDead || isPausedForDialog) return;
     joyActive = true;
     currentTouchId = touchId;
@@ -778,6 +800,7 @@ const suckBtn = document.getElementById("suck-btn");
 const blinkBtn = document.getElementById("blink-btn");
 
 function startSuck() {
+    playBGM();
     if (mosquito.isDead || isPausedForDialog) return;
     isSucking = true;
     suckBtn.classList.add("pressed");
@@ -806,6 +829,7 @@ function showDodgeEffect() {
 
 function triggerBlink(e) {
     if (e && e.preventDefault) e.preventDefault();
+    playBGM();
     if (!hasLearnedBlink) return;
     if (blinkCooldown <= 0 && !mosquito.isDead && !isPausedForDialog) {
         blinkCooldown = 2.0;
@@ -868,6 +892,7 @@ function triggerDeath(reason) {
     mosquito.isDead = true;
     mosquito.deathType = reason;
     stopSuck();
+    // 死亡時不暫停背景音樂，讓 BGM 連續播放
     document.getElementById("qte-overlay").style.display = "none";
 
     const reasonText = document.getElementById("death-reason");
@@ -1100,7 +1125,6 @@ function gameLoop(now) {
         alertVal = Math.max(0, alertVal - 10 * dt);
     }
 
-    // 掌風觸發與倒數機制邏輯：保證完整 1.8 秒預警期
     if (alertVal >= 40) {
         windWaveTimer += dt;
         if (windWaveTimer >= 1.2 && !windWaveActive) {
@@ -1115,7 +1139,6 @@ function gameLoop(now) {
             windWaveTimer = 0;
         }
     } else {
-        // 暴露值下降時平滑遞減或重置，確保預警不瞬間卡死
         if (!windWaveActive) {
             windWaveTimer = 0;
             windWaveWarning = false;
@@ -1223,7 +1246,6 @@ function gameLoop(now) {
     } else {
         if (!qteActive && hurtFlashTimer <= 0) {
             if (windWaveWarning) {
-                // 頂部狀態列動態刷新倒數秒數，保證絕不遺漏
                 statusText.innerText = hasLearnedBlink
                     ? `⚠️ 掌風倒數 (${windWaveWarningTimer.toFixed(1)}s)！按【瞬移⚡】閃避！`
                     : `⚠️ 掌風倒數 (${windWaveWarningTimer.toFixed(1)}s)！小心被重創！`;
@@ -1387,7 +1409,6 @@ function render(currentTarget, timestamp) {
         ctx.restore();
     }
 
-    // 掌風警示渲染：加入相機邊界保護，確保文字絕不超出螢幕
     if (windWaveWarning) {
         ctx.save();
         const curTime = timestamp || performance.now();
@@ -1405,7 +1426,6 @@ function render(currentTarget, timestamp) {
         ctx.stroke();
         ctx.setLineDash([]);
 
-        // 計算目前攝影機可見的世界座標範圍
         const viewLeft = camera.x;
         const viewRight = camera.x + canvas.width / camera.zoom;
 
@@ -1415,14 +1435,12 @@ function render(currentTarget, timestamp) {
         const pillW = textWidth + 18;
         const pillH = 22;
 
-        // 將警告標籤的 X 限制在可見畫面內（左右各留 8px 安全距離）
         let pillX = mosquito.x;
         const halfW = pillW / 2;
         if (pillX - halfW < viewLeft + 8) pillX = viewLeft + 8 + halfW;
         if (pillX + halfW > viewRight - 8) pillX = viewRight - 8 - halfW;
         const pillY = mosquito.y - 32;
 
-        // 繪製高對比防切黑紅膠囊底框
         ctx.fillStyle = "rgba(0, 0, 0, 0.85)";
         ctx.strokeStyle = "#ff1744";
         ctx.lineWidth = 1.5;
