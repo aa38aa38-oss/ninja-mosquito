@@ -261,7 +261,7 @@
 </head>
 <body>
 
-<audio id="bgm" src="music.mp3" loop preload="auto"></audio>
+<audio id="bgm" src="music2.mp3" loop preload="auto"></audio>
 
 <!-- 開場感謝對話框 -->
 <div id="intro-modal">
@@ -318,6 +318,7 @@
 
   function startEndingSequence() {
     if (bgm && bgm.paused) {
+      bgm.volume = 0.6;
       bgm.play().catch(() => {});
     }
 
