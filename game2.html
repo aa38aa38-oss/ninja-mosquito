@@ -160,7 +160,7 @@
         <div id="arena-knob"></div>
     </div>
 
-    <div id="qte-overlay">⚠️ 巨掌合圍！按【瞬移⚡】閃避！</div>
+    <div id="qte-overlay">⚠️️ 巨掌合圍！按【瞬移⚡】閃避！</div>
     <div id="dodge-popup">⚡ DODGE! 完美閃避！</div>
 
     <div id="hud">
@@ -384,7 +384,7 @@ function showUnlockFrenzyDialog() {
     isPausedForDialog = true;
     dialogStep = "UNLOCK_FRENZY";
     dialogTitle.innerText = "⚡ 領悟最終奧義！";
-    dialogContent.innerText = "壽星精華液達到 10%！\n你已學會【奧義·大吸特吸🌪️】！\n按下後直接瞬移至壽星身邊自動吸血 1.8 秒，且完全不增加暴露值！";
+    dialogContent.innerText = "壽星精華液達到 10%！\n你已學會【奧義·大吸特吸🌪️】！\n按下後直接瞬移至壽星身邊自動吸血 1.1 秒，且完全不增加暴露值！";
     dialogBtn1.innerText = "大吸特吸！";
     dialogModal.style.display = "flex";
 }
@@ -418,7 +418,7 @@ function resetGame() {
     document.getElementById("dodge-popup").style.display = "none";
     document.getElementById("game-over-screen").style.display = "none";
 
-    // 重新挑戰時維持音樂無縫連續播放，不重設時間也不中斷
+    // 重新挑戰時維持音樂無縫連續播放
     playBGM();
 
     isPausedForDialog = true; dialogStep = 1;
@@ -564,6 +564,7 @@ function triggerStealth(e) {
 stealthBtn.addEventListener("click", triggerStealth);
 stealthBtn.addEventListener("touchstart", triggerStealth, { passive: false });
 
+// 奧義發動：持續時間改為 1.1 秒
 function triggerFrenzy(e) {
     if (e && e.preventDefault) e.preventDefault();
     playBGM();
@@ -571,8 +572,8 @@ function triggerFrenzy(e) {
     if (frenzyCooldown <= 0 && frenzyActiveTimer <= 0 && !mosquito.isDead && !isPausedForDialog) {
         frenzyCooldown = 11.0;
         frenzyStartupTimer = 0.3;
-        frenzyActiveTimer = 1.8;
-        mosquito.invincibleTimer = 1.8;
+        frenzyActiveTimer = 1.1; // 奧義持續時間修改為 1.1 秒
+        mosquito.invincibleTimer = 1.1;
 
         mosquito.x = 1228;
         mosquito.y = 382;
